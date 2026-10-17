@@ -19,7 +19,6 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import org.jsoup.Jsoup
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -32,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var rvGrades: RecyclerView
     private val adapter = SubjectAdapter()
+    private lateinit var repo: GradesRepository
 
     private var usernameIntent: String = ""
     private var passwordIntent: String = ""
@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     private val TAG = "AGENDA_DEBUG"
 
     // true = при каждом обновлении слать ВСЕ оценки на бэкенд (могут дублироваться)
-    private val SEND_TO_BACKEND = true
+    private val SEND_TO_BACKEND = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
             finish()
             return
         }
+        repo = GradesRepository(this)
         usernameIntent = creds.first
         passwordIntent = creds.second
 
@@ -237,43 +238,68 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun processHTML(html: String) {
             Log.d(TAG, "HTML успешно получен в Kotlin. Размер: ${html.length} символов")
-            val doc = Jsoup.parse(html)
 
-            // Полные таблицы оценок по семестрам: <table id="report_table_sem1"> и т.д.
-            val result = mutableListOf<SubjectGrades>()
-            for (table in doc.select("table[id^=report_table_sem]")) {
-                val semester = table.attr("aria-label").ifEmpty { "Семестр" }
-                for (row in table.select("tbody tr")) {
-                    val cells = row.select("td")
-                    if (cells.size < 2) continue
-
-                    val subject = cells[0].text().trim()
-                    val scores = cells[1].text().split(",").mapNotNull { it.trim().toIntOrNull() }
-                    val media = if (cells.size > 3) cells[3].text().trim() else ""
-
-                    Log.d(TAG, "[$semester] '$subject': $scores, media='$media'")
-                    if (subject.isEmpty()) continue
-
-                    result.add(SubjectGrades(subject, scores, semester, media))
-                    if (SEND_TO_BACKEND) {
-                        scores.forEach { sendMetricToBackend(10, subject, it) }
-                    }
-                }
+            // 1. Чистая логика: HTML -> список предметов (без Android-зависимостей)
+            val result = GradesParser.parse(html)
+            result.forEach {
+                Log.d(TAG, "[${it.semester}] '${it.subject}': ${it.scores}, media='${it.media}'")
             }
 
             if (result.isEmpty()) {
-                Log.d(TAG, "Таблицы report_table_sem* не найдены.")
+                Log.d(TAG, "Таблицы report_table_sem* не найдены или пусты.")
                 runOnUiThread { tvStatus.text = "Таблица оценок не найдена" }
                 return
             }
 
+            // 2. Побочный эффект: сеть (по умолчанию выключено)
+            if (SEND_TO_BACKEND) {
+                result.forEach { item ->
+                    item.scores.forEach { sendMetricToBackend(10, item.subject, it) }
+                }
+            }
+
+            // 3. Локальная история: сравниваем со снимком в базе и записываем разницу
+            val report = try {
+                repo.sync(result)
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка записи истории: ${e.message}")
+                null
+            }
+
+            // 4. Побочный эффект: интерфейс (только из главного потока)
             val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+            val details = when {
+                report == null -> "история не записана"
+                report.isBaseline -> "история оценок начата"
+                else -> describeChanges(report.changes)
+            }
+            val hasNew = report?.changes?.any { it.type == ChangeType.ADDED } == true
+
             runOnUiThread {
                 adapter.submit(result)
-                tvStatus.text = "Обновлено в $time · предметов: ${result.size}"
-                Toast.makeText(this@MainActivity, "Оценки обновлены", Toast.LENGTH_SHORT).show()
+                tvStatus.text = "Обновлено в $time · $details"
+                if (hasNew) {
+                    Toast.makeText(this@MainActivity, "Появились новые оценки!", Toast.LENGTH_LONG).show()
+                }
             }
         }
+    }
+
+    /** Короткое описание изменений для строки статуса. */
+    private fun describeChanges(changes: List<GradeChange>): String {
+        val added = changes.filter { it.type == ChangeType.ADDED }
+        val modified = changes.count { it.type == ChangeType.MODIFIED }
+        val removed = changes.count { it.type == ChangeType.REMOVED }
+
+        val parts = mutableListOf<String>()
+        if (added.isNotEmpty()) {
+            val shown = added.take(3).joinToString(", ") { "${it.subject}: ${it.newScore}" }
+            val rest = added.size - 3
+            parts.add("новые оценки: $shown" + if (rest > 0) " и ещё $rest" else "")
+        }
+        if (modified > 0) parts.add("исправлено: $modified")
+        if (removed > 0) parts.add("удалено: $removed")
+        return if (parts.isEmpty()) "новых оценок нет" else parts.joinToString(" · ")
     }
 
     private fun sendMetricToBackend(gradeLevel: Int, subject: String, score: Int) {
