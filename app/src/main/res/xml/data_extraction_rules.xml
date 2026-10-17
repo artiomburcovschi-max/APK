@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- зашифрованные логин/пароль не уходят в облачный бэкап -->
+        <exclude domain="sharedpref" path="creds.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <!-- и не переносятся на новый телефон: ключ Keystore всё равно не переедет -->
+        <exclude domain="sharedpref" path="creds.xml" />
+    </device-transfer>
+</data-extraction-rules>
