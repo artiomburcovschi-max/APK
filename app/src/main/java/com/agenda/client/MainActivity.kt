@@ -1,25 +1,30 @@
 package com.agenda.client
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.io.IOException
+import java.io.ByteArrayInputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -32,17 +37,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rvGrades: RecyclerView
     private val adapter = SubjectAdapter()
     private lateinit var repo: GradesRepository
+    private lateinit var cache: SnapshotCache
+    private lateinit var updater: UpdateChecker
 
     private var usernameIntent: String = ""
     private var passwordIntent: String = ""
 
     private val client = OkHttpClient()
-    private val backendUrl = "http://192.168.100.29:8001/api/v1/metrics/"
-
     private val TAG = "AGENDA_DEBUG"
-
-    // true = при каждом обновлении слать ВСЕ оценки на бэкенд (могут дублироваться)
-    private val SEND_TO_BACKEND = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +58,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
         repo = GradesRepository(this)
+        cache = SnapshotCache(this)
+        updater = UpdateChecker(this, client)
         usernameIntent = creds.first
         passwordIntent = creds.second
 
@@ -67,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         webView = findViewById(R.id.webView)
         val btnRefresh = findViewById<Button>(R.id.btnRefresh)
         val btnLogout = findViewById<Button>(R.id.btnLogout)
+        val btnAnalytics = findViewById<Button>(R.id.btnAnalytics)
 
         rvGrades.layoutManager = LinearLayoutManager(this)
         rvGrades.adapter = adapter
@@ -85,6 +90,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         webView.webViewClient = object : WebViewClient() {
+            // Не пускаем во встроенный браузер YouTube, иконки и счётчики (см. HostPolicy)
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                val host = request?.url?.host ?: return null
+                if (HostPolicy.isBlocked(host)) {
+                    Log.d(TAG, "Заблокирован сторонний ресурс: $host")
+                    return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
+                }
+                return null
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 Log.d(TAG, "Страница загружена, URL: $url")
@@ -212,27 +227,93 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnRefresh.setOnClickListener {
-            tvStatus.text = "Загрузка..."
-            Log.d(TAG, "Сброс и переход на стартовую страницу")
-            webView.loadUrl("https://agenda.sime.md/")
+            val wait = RefreshPolicy.manualWaitMs(cache.lastAttemptAt, System.currentTimeMillis())
+            if (wait > 0) {
+                Toast.makeText(
+                    this,
+                    "Данные свежие. Обновить можно через ${(wait + 999) / 1000} с",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                startRefresh()
+            }
+        }
+
+        btnAnalytics.setOnClickListener {
+            startActivity(Intent(this, AnalyticsActivity::class.java))
         }
 
         btnLogout.setOnClickListener {
-            store.clear()
-            CookieManager.getInstance().removeAllCookies(null) // сбрасываем сессию портала
+            store.clear()                                       // логин и пароль
+            cache.clear()                                       // сохранённый список оценок
+            try { repo.clearAll() } catch (e: Exception) { Log.e(TAG, "Не удалось стереть историю: ${e.message}") }
+            CookieManager.getInstance().removeAllCookies(null)  // сессия портала
+            WebStorage.getInstance().deleteAllData()            // данные страниц портала
             webView.clearCache(true)
+            webView.clearHistory()
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
 
-        // Сразу грузим оценки при открытии
-        btnRefresh.performClick()
+        // Сначала показываем сохранённое: экран не пустой, портал пока не трогаем
+        val cached = cache.load()
+        if (cached.isNotEmpty()) {
+            adapter.submit(cached)
+            tvStatus.text = "Данные от ${formatTime(cache.lastSuccessAt)}"
+        }
+
+        // На портал идём только если данные устарели
+        if (RefreshPolicy.shouldAutoRefresh(cache.lastAttemptAt, System.currentTimeMillis())) {
+            startRefresh()
+        }
+
+        // Баннер "доступна новая версия": сначала из сохранённого, потом (раз в сутки) проверяем сервер
+        showUpdateBanner()
+        updater.refreshIfDue { runOnUiThread { showUpdateBanner() } }
     }
+
+    private fun showUpdateBanner() {
+        val banner = findViewById<LinearLayout>(R.id.updateBanner)
+        val info = updater.pendingUpdate()
+        if (info == null) {
+            banner.visibility = View.GONE
+            return
+        }
+        banner.visibility = View.VISIBLE
+        findViewById<TextView>(R.id.tvUpdate).text = "Доступна версия ${info.versionName}. Нажми, чтобы скачать"
+        banner.setOnClickListener { openUrl(info.apkUrl) }
+        findViewById<Button>(R.id.btnUpdateDismiss).setOnClickListener {
+            updater.dismiss(info)
+            banner.visibility = View.GONE
+        }
+    }
+
+    private fun openUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, "Не нашлось приложения, чтобы открыть ссылку", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun startRefresh() {
+        cache.lastAttemptAt = System.currentTimeMillis() // фиксируем ПОПЫТКУ до запроса
+        tvStatus.text = "Загрузка..."
+        Log.d(TAG, "Переход на стартовую страницу")
+        webView.loadUrl("https://agenda.sime.md/")
+    }
+
+    private fun formatTime(millis: Long): String =
+        SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(Date(millis))
 
     inner class WebAppInterface {
         @JavascriptInterface
         fun onTimeout() {
-            runOnUiThread { tvStatus.text = "Не удалось войти. Проверь логин и пароль или нажми «Сменить аккаунт»" }
+            val last = cache.lastSuccessAt
+            val suffix = if (last > 0) ". Показаны данные от ${formatTime(last)}" else ""
+            runOnUiThread {
+                tvStatus.text = "Не удалось войти. Проверь логин и пароль или нажми «Сменить аккаунт»$suffix"
+            }
         }
 
         @JavascriptInterface
@@ -251,20 +332,22 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
-            // 2. Побочный эффект: сеть (по умолчанию выключено)
-            if (SEND_TO_BACKEND) {
-                result.forEach { item ->
-                    item.scores.forEach { sendMetricToBackend(10, item.subject, it) }
-                }
-            }
-
-            // 3. Локальная история: сравниваем со снимком в базе и записываем разницу
+            // 3. Локальная история: сравниваем со снимком в базе, записываем разницу и проставляем даты.
+            //    recent = блок "Note recente" с настоящими датами оценок.
+            val recent = RecentEvalParser.parse(html)
+            Log.d(TAG, "Свежих оценок с датами на странице: ${recent.size}")
             val report = try {
-                repo.sync(result)
+                repo.sync(result, recent)
             } catch (e: Exception) {
                 Log.e(TAG, "Ошибка записи истории: ${e.message}")
                 null
             }
+
+            // Показываем список вместе с датами из базы (если база не сработала, то без дат)
+            val display = report?.display ?: result
+
+            // Кэш: именно его увидим при следующем открытии и на экране аналитики
+            cache.save(display, System.currentTimeMillis())
 
             // 4. Побочный эффект: интерфейс (только из главного потока)
             val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
@@ -276,7 +359,7 @@ class MainActivity : AppCompatActivity() {
             val hasNew = report?.changes?.any { it.type == ChangeType.ADDED } == true
 
             runOnUiThread {
-                adapter.submit(result)
+                adapter.submit(display)
                 tvStatus.text = "Обновлено в $time · $details"
                 if (hasNew) {
                     Toast.makeText(this@MainActivity, "Появились новые оценки!", Toast.LENGTH_LONG).show()
@@ -300,29 +383,5 @@ class MainActivity : AppCompatActivity() {
         if (modified > 0) parts.add("исправлено: $modified")
         if (removed > 0) parts.add("удалено: $removed")
         return if (parts.isEmpty()) "новых оценок нет" else parts.joinToString(" · ")
-    }
-
-    private fun sendMetricToBackend(gradeLevel: Int, subject: String, score: Int) {
-        val json = JSONObject()
-            .put("grade_level", gradeLevel)
-            .put("subject", subject)
-            .put("score", score)
-            .toString()
-
-        val body = json.toRequestBody("application/json; charset=utf-8".toMediaType())
-        val request = Request.Builder()
-            .url(backendUrl)
-            .post(body)
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Log.e(TAG, "Ошибка отправки на бэкенд: ${e.message}")
-            }
-            override fun onResponse(call: Call, response: Response) {
-                Log.d(TAG, "Успешно отправлено! Код ответа бэкенда: ${response.code}")
-                response.close()
-            }
-        })
     }
 }

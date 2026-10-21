@@ -25,6 +25,35 @@
         android:textColor="#757575"
         android:textSize="14sp" />
 
+    <!-- Баннер "доступно обновление" (скрыт, пока обновления нет) -->
+    <LinearLayout
+        android:id="@+id/updateBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="#E3F2FD"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvUpdate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#0D47A1"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnUpdateDismiss"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="Позже" />
+    </LinearLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvGrades"
         android:layout_width="match_parent"
@@ -39,6 +68,13 @@
         android:layout_height="50dp"
         android:layout_marginTop="8dp"
         android:text="Обновить оценки" />
+
+    <Button
+        android:id="@+id/btnAnalytics"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="8dp"
+        android:text="Аналитика" />
 
     <Button
         android:id="@+id/btnLogout"

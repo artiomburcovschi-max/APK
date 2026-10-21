@@ -1,6 +1,14 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 }
+
+// Переменные версии приложения перед блоком android
+val vMajor = 0
+val vMinor = 2
+val vPatch = 0
 
 android {
     namespace = "com.agenda.client"
@@ -8,24 +16,47 @@ android {
         version = release(37)
     }
 
+    // Загрузка свойств из keystore.properties для безопасной подписи
+    val keystoreProps = Properties().apply {
+        val f = rootProject.file("keystore.properties")
+        if (f.exists()) load(FileInputStream(f))
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystoreProps.isNotEmpty()) {
+                storeFile = file(keystoreProps["storeFile"] as String)
+                storePassword = keystoreProps["storePassword"] as String
+                keyAlias = keystoreProps["keyAlias"] as String
+                keyPassword = keystoreProps["keyPassword"] as String
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.agenda.client"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+
+        // Автоматический расчет версии (0.2.0 -> 200)
+        versionCode = vMajor * 10000 + vMinor * 100 + vPatch
+        versionName = "$vMajor.$vMinor.$vPatch"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
-            }
+            // Подключаем созданную конфигурацию подписи ключом
+            signingConfig = signingConfigs.getByName("release")
+
+            // ОТКЛЮЧАЕМ оптимизацию и сжатие кода, чтобы не было конфликтов с Kotlin-классами
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
+
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

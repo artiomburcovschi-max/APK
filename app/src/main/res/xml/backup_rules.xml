@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
     <exclude domain="sharedpref" path="creds.xml" />
+    <exclude domain="sharedpref" path="snapshot.xml" />
     <exclude domain="database" path="grades.db" />
+    <exclude domain="root" path="app_webview" />
 </full-backup-content>

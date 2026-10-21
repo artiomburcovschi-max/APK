@@ -19,4 +19,7 @@ build/
 keystore.properties
 .gradle/
 .idea/
+keystore.properties
+*.jks
+*.keystore
 

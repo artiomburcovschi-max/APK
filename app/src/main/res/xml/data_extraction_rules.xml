@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- зашифрованные логин/пароль и история оценок не уходят в облако -->
+        <!-- логин/пароль, кэш, история оценок и сеанс портала не уходят в облако -->
         <exclude domain="sharedpref" path="creds.xml" />
+        <exclude domain="sharedpref" path="snapshot.xml" />
         <exclude domain="database" path="grades.db" />
+        <exclude domain="root" path="app_webview" />
     </cloud-backup>
     <device-transfer>
-        <!-- при переносе напрямую на новый телефон: логин не переносим (ключ Keystore не переедет),
-             историю оценок переносим -->
+        <!-- при прямом переносе на новый телефон: логин не переносим (ключ Keystore не переедет), сеанс тоже -->
         <exclude domain="sharedpref" path="creds.xml" />
+        <exclude domain="root" path="app_webview" />
     </device-transfer>
 </data-extraction-rules>

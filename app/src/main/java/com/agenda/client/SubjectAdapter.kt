@@ -14,6 +14,7 @@ import java.util.Locale
 class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
 
     private val items = mutableListOf<SubjectGrades>()
+    private val expanded = mutableSetOf<String>() // какие карточки раскрыты (по ключу семестр|предмет)
 
     fun submit(newItems: List<SubjectGrades>) {
         items.clear()
@@ -25,6 +26,7 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
         val tvSubject: TextView = view.findViewById(R.id.tvSubject)
         val tvAverage: TextView = view.findViewById(R.id.tvAverage)
         val tvScores: TextView = view.findViewById(R.id.tvScores)
+        val tvDetails: TextView = view.findViewById(R.id.tvDetails)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -38,20 +40,24 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
         val item = items[position]
         holder.tvSubject.text = item.subject
 
-        // подпись под названием: семестр · среднее · официальная оценка
+        // подпись под названием: семестр · среднее · официальная оценка · дата последней оценки
         val parts = mutableListOf<String>()
         if (item.semester.isNotEmpty()) parts.add(item.semester)
         if (item.scores.isNotEmpty()) {
-            parts.add(String.format(Locale.US, "среднее: %.1f", item.scores.average()))
+            parts.add(String.format(Locale.US, "среднее: %.2f", item.scores.average()))
         } else {
             parts.add("нет оценок")
         }
         if (item.media.isNotEmpty()) parts.add(item.media)
+        val lastDate = item.dates.lastOrNull()?.let { GradeDates.toDisplay(it) }
+        if (lastDate != null) parts.add("последняя: $lastDate")
         holder.tvAverage.text = parts.joinToString(" · ")
 
         if (item.scores.isEmpty()) {
             holder.tvScores.text = "—"
             holder.tvScores.setTextColor(Color.parseColor("#9E9E9E"))
+            holder.tvDetails.visibility = View.GONE
+            holder.itemView.setOnClickListener(null)
             return
         }
 
@@ -62,17 +68,29 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
             val start = sb.length
             sb.append(score.toString())
             sb.setSpan(
-                ForegroundColorSpan(colorFor(score)),
+                ForegroundColorSpan(GradeColors.forScore(score.toDouble())),
                 start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
         }
         holder.tvScores.text = sb
+
+        // по нажатию на карточку раскрываем список "дата - оценка"
+        val key = item.semester + "|" + item.subject
+        if (key in expanded) {
+            holder.tvDetails.visibility = View.VISIBLE
+            holder.tvDetails.text = detailsText(item)
+        } else {
+            holder.tvDetails.visibility = View.GONE
+        }
+        holder.itemView.setOnClickListener {
+            if (!expanded.add(key)) expanded.remove(key)
+            notifyDataSetChanged()
+        }
     }
 
-    private fun colorFor(score: Int): Int = when {
-        score >= 9 -> Color.parseColor("#2E7D32") // зелёный
-        score >= 7 -> Color.parseColor("#F9A825") // жёлтый
-        score >= 5 -> Color.parseColor("#EF6C00") // оранжевый
-        else -> Color.parseColor("#C62828")       // красный
-    }
+    private fun detailsText(item: SubjectGrades): String =
+        item.scores.mapIndexed { i, score ->
+            val date = item.dates.getOrNull(i)?.let { GradeDates.toDisplay(it) } ?: "дата неизвестна"
+            "$date  —  $score"
+        }.joinToString("\n")
 }
