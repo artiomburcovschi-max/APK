@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ВАЖНО: все пункты в ОДНОЙ группе. checkableBehavior="single" работает в пределах группы,
+         при двух группах отметки в обеих сохранялись бы одновременно. -->
+    <group
+        android:id="@+id/nav_group"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_grades"
+            android:icon="@drawable/ic_nav_grades"
+            android:title="Оценки" />
+        <item
+            android:id="@+id/nav_analytics"
+            android:icon="@drawable/ic_nav_analytics"
+            android:title="Аналитика" />
+        <item
+            android:id="@+id/nav_account"
+            android:icon="@drawable/ic_nav_account"
+            android:title="Аккаунт" />
+        <item
+            android:id="@+id/nav_about"
+            android:icon="@drawable/ic_nav_info"
+            android:title="О приложении" />
+    </group>
+</menu>

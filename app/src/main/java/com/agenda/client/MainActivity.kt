@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
@@ -14,14 +15,21 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.navigation.NavigationView
 import okhttp3.*
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -29,28 +37,75 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MainActivity : AppCompatActivity() {
+/**
+ * Хозяин приложения: боковая шторка + «движок» (скрытый WebView, вход на портал, история оценок).
+ * Разделы (Оценки, Аналитика, Аккаунт, О приложении) это фрагменты, которые меняются в области content.
+ * Новый раздел = пункт в res/menu/drawer_menu.xml + фрагмент + одна строка в sectionFor().
+ */
+class MainActivity : AppCompatActivity(), AppHost {
 
+    private lateinit var drawer: DrawerLayout
+    private lateinit var navView: NavigationView
+    private lateinit var toolbar: MaterialToolbar
     private lateinit var webView: WebView
-    private lateinit var tvWelcome: TextView
-    private lateinit var tvStatus: TextView
-    private lateinit var rvGrades: RecyclerView
-    private val adapter = SubjectAdapter()
     private lateinit var repo: GradesRepository
     private lateinit var cache: SnapshotCache
     private lateinit var updater: UpdateChecker
+    private lateinit var store: CredentialStore
 
     private var usernameIntent: String = ""
     private var passwordIntent: String = ""
+    private var accountTypeValue: AccountType = AccountType.PARENT
 
     private val client = OkHttpClient()
     private val TAG = "AGENDA_DEBUG"
 
+    // Состояние для экрана «Оценки». Живёт в Activity, поэтому переживает смену разделов.
+    private var gradesState: List<SubjectGrades> = emptyList()
+    private var statusState: String = ""
+    private var stateListener: (() -> Unit)? = null
+
+    private var currentNavId = R.id.nav_grades
+
+    // ---- AppHost ----
+    override val grades: List<SubjectGrades> get() = gradesState
+    override val status: String get() = statusState
+    override val username: String get() = usernameIntent
+    override val accountType: AccountType get() = accountTypeValue
+
+    override fun setStateListener(listener: (() -> Unit)?) {
+        stateListener = listener
+    }
+
+    override fun requestRefresh() {
+        val wait = RefreshPolicy.manualWaitMs(cache.lastAttemptAt, System.currentTimeMillis())
+        if (wait > 0) {
+            Toast.makeText(
+                this,
+                "Данные свежие. Обновить можно через ${(wait + 999) / 1000} с",
+                Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            startRefresh()
+        }
+    }
+
+    override fun confirmLogout() {
+        // Выход необратим (стирает историю), поэтому спрашиваем
+        AlertDialog.Builder(this)
+            .setTitle("Сменить аккаунт?")
+            .setMessage("С этого телефона будут стёрты логин, пароль и вся сохранённая история оценок.")
+            .setPositiveButton("Сменить") { _, _ -> performLogout() }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    // ---- жизненный цикл ----
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Логин и пароль берём из защищённого хранилища, а не из Intent
-        val store = CredentialStore(this)
+        store = CredentialStore(this)
         val creds = store.load()
         if (creds == null) {
             startActivity(Intent(this, LoginActivity::class.java))
@@ -62,22 +117,113 @@ class MainActivity : AppCompatActivity() {
         updater = UpdateChecker(this, client)
         usernameIntent = creds.first
         passwordIntent = creds.second
+        accountTypeValue = store.loadType()
 
         setContentView(R.layout.activity_main)
-
-        tvWelcome = findViewById(R.id.tvWelcome)
-        tvStatus = findViewById(R.id.tvStatus)
-        rvGrades = findViewById(R.id.rvGrades)
+        drawer = findViewById(R.id.drawerLayout)
+        navView = findViewById(R.id.navView)
+        toolbar = findViewById(R.id.toolbar)
         webView = findViewById(R.id.webView)
-        val btnRefresh = findViewById<Button>(R.id.btnRefresh)
-        val btnLogout = findViewById<Button>(R.id.btnLogout)
-        val btnAnalytics = findViewById<Button>(R.id.btnAnalytics)
 
-        rvGrades.layoutManager = LinearLayoutManager(this)
-        rvGrades.adapter = adapter
+        setupWindowInsets()
+        setupWebView()
+        setupNavigation(savedInstanceState)
 
-        tvWelcome.text = "Привет, $usernameIntent!"
+        // Сначала показываем сохранённое: экран не пустой, портал пока не трогаем
+        val cached = cache.load()
+        if (cached.isNotEmpty()) {
+            gradesState = cached
+            statusState = "Данные от ${formatTime(cache.lastSuccessAt)}"
+        } else {
+            statusState = "Нажми «Обновить», чтобы загрузить оценки"
+        }
 
+        // На портал идём только если данные устарели
+        if (RefreshPolicy.shouldAutoRefresh(cache.lastAttemptAt, System.currentTimeMillis())) {
+            startRefresh()
+        }
+
+        // Баннер "доступна новая версия": сначала из сохранённого, потом (раз в сутки) проверяем сервер
+        showUpdateBanner()
+        updater.refreshIfDue { runOnUiThread { showUpdateBanner() } }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_NAV, currentNavId)
+    }
+
+    // ---- оболочка: шторка, отступы, кнопка «назад» ----
+    private fun setupWindowInsets() {
+        // С targetSdk 35+ приложение рисуется под системными панелями. Сдвигаем содержимое на их высоту.
+        val content = findViewById<View>(R.id.contentRoot)
+        ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets // не «съедаем», чтобы шторка тоже получила свои отступы
+        }
+        // Фон светлый, значит значки в статус-баре и панели навигации должны быть тёмными
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.isAppearanceLightStatusBars = true
+        controller.isAppearanceLightNavigationBars = true
+    }
+
+    private fun setupNavigation(savedInstanceState: Bundle?) {
+        navView.getHeaderView(0).findViewById<TextView>(R.id.tvNavUser).text = usernameIntent
+        toolbar.setNavigationOnClickListener { drawer.openDrawer(GravityCompat.START) }
+        navView.setNavigationItemSelectedListener { item ->
+            showSection(item.itemId)
+            drawer.closeDrawer(GravityCompat.START)
+            true
+        }
+
+        if (savedInstanceState == null) {
+            showSection(currentNavId)
+        } else {
+            // Поворот экрана: FragmentManager сам восстановил фрагмент, нам остаётся вернуть заголовок и пункт меню
+            currentNavId = savedInstanceState.getInt(KEY_NAV, R.id.nav_grades)
+            toolbar.title = navView.menu.findItem(currentNavId)?.title
+            navView.setCheckedItem(currentNavId)
+        }
+
+        // «Назад»: сначала закрыть шторку, потом вернуться на «Оценки», и только потом выйти
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    drawer.isDrawerOpen(GravityCompat.START) -> drawer.closeDrawer(GravityCompat.START)
+                    currentNavId != R.id.nav_grades -> showSection(R.id.nav_grades)
+                    else -> finish()
+                }
+            }
+        })
+    }
+
+    private fun sectionFor(navId: Int): Fragment = when (navId) {
+        R.id.nav_analytics -> AnalyticsFragment()
+        R.id.nav_account -> AccountFragment()
+        R.id.nav_about -> AboutFragment()
+        else -> GradesFragment()
+    }
+
+    private fun showSection(navId: Int) {
+        val alreadyShown = navId == currentNavId &&
+            supportFragmentManager.findFragmentById(R.id.content) != null
+        if (alreadyShown) return
+
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.content, sectionFor(navId))
+            .commit()
+        currentNavId = navId
+        toolbar.title = navView.menu.findItem(navId)?.title
+        navView.setCheckedItem(navId)
+    }
+
+    private fun publishState() {
+        stateListener?.invoke()
+    }
+
+    // ---- движок: WebView и вход на портал (логика из v9 без изменений) ----
+    private fun setupWebView() {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.addJavascriptInterface(WebAppInterface(), "AndroidBridge")
@@ -108,6 +254,8 @@ class MainActivity : AppCompatActivity() {
                     // JSONObject.quote() безопасно экранирует кавычки и спецсимволы
                     val userJs = JSONObject.quote(usernameIntent)
                     val passJs = JSONObject.quote(passwordIntent)
+                    // какую кнопку нажимать на стартовой странице: "Părinte" или "Elev"
+                    val roleJs = JSONObject.quote(accountTypeValue.portalAlt)
 
                     val jsAutomationCode = """
                         (function() {
@@ -203,11 +351,11 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 } else if (!window._parentClicked) {
                                     // Шаг 3: открываем модалку входа для родителя (один раз)
-                                    var parentImg = document.querySelector('img[alt="Părinte"]');
-                                    var parentLink = parentImg && parentImg.closest('a');
+                                    var roleImg = document.querySelector('img[alt=' + $roleJs + ']');
+                                    var parentLink = roleImg && roleImg.closest('a');
                                     if (parentLink) {
                                         window._parentClicked = true;
-                                        console.log("Кликаем по Părinte");
+                                        console.log("Кликаем по кнопке входа: " + $roleJs);
                                         parentLink.click();
                                     }
                                 }
@@ -225,51 +373,18 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
 
-        btnRefresh.setOnClickListener {
-            val wait = RefreshPolicy.manualWaitMs(cache.lastAttemptAt, System.currentTimeMillis())
-            if (wait > 0) {
-                Toast.makeText(
-                    this,
-                    "Данные свежие. Обновить можно через ${(wait + 999) / 1000} с",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } else {
-                startRefresh()
-            }
-        }
-
-        btnAnalytics.setOnClickListener {
-            startActivity(Intent(this, AnalyticsActivity::class.java))
-        }
-
-        btnLogout.setOnClickListener {
-            store.clear()                                       // логин и пароль
-            cache.clear()                                       // сохранённый список оценок
-            try { repo.clearAll() } catch (e: Exception) { Log.e(TAG, "Не удалось стереть историю: ${e.message}") }
-            CookieManager.getInstance().removeAllCookies(null)  // сессия портала
-            WebStorage.getInstance().deleteAllData()            // данные страниц портала
-            webView.clearCache(true)
-            webView.clearHistory()
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
-        }
-
-        // Сначала показываем сохранённое: экран не пустой, портал пока не трогаем
-        val cached = cache.load()
-        if (cached.isNotEmpty()) {
-            adapter.submit(cached)
-            tvStatus.text = "Данные от ${formatTime(cache.lastSuccessAt)}"
-        }
-
-        // На портал идём только если данные устарели
-        if (RefreshPolicy.shouldAutoRefresh(cache.lastAttemptAt, System.currentTimeMillis())) {
-            startRefresh()
-        }
-
-        // Баннер "доступна новая версия": сначала из сохранённого, потом (раз в сутки) проверяем сервер
-        showUpdateBanner()
-        updater.refreshIfDue { runOnUiThread { showUpdateBanner() } }
+    private fun performLogout() {
+        store.clear()                                       // логин и пароль
+        cache.clear()                                       // сохранённый список оценок
+        try { repo.clearAll() } catch (e: Exception) { Log.e(TAG, "Не удалось стереть историю: ${e.message}") }
+        CookieManager.getInstance().removeAllCookies(null)  // сессия портала
+        WebStorage.getInstance().deleteAllData()            // данные страниц портала
+        webView.clearCache(true)
+        webView.clearHistory()
+        startActivity(Intent(this, LoginActivity::class.java))
+        finish()
     }
 
     private fun showUpdateBanner() {
@@ -298,7 +413,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun startRefresh() {
         cache.lastAttemptAt = System.currentTimeMillis() // фиксируем ПОПЫТКУ до запроса
-        tvStatus.text = "Загрузка..."
+        statusState = "Загрузка..."
+        publishState()
         Log.d(TAG, "Переход на стартовую страницу")
         webView.loadUrl("https://agenda.sime.md/")
     }
@@ -312,7 +428,8 @@ class MainActivity : AppCompatActivity() {
             val last = cache.lastSuccessAt
             val suffix = if (last > 0) ". Показаны данные от ${formatTime(last)}" else ""
             runOnUiThread {
-                tvStatus.text = "Не удалось войти. Проверь логин и пароль или нажми «Сменить аккаунт»$suffix"
+                statusState = "Не удалось войти (${accountTypeValue.label.lowercase()}). Проверь логин, пароль и тип входа. Сменить их можно в разделе «Аккаунт»$suffix"
+                publishState()
             }
         }
 
@@ -328,7 +445,10 @@ class MainActivity : AppCompatActivity() {
 
             if (result.isEmpty()) {
                 Log.d(TAG, "Таблицы report_table_sem* не найдены или пусты.")
-                runOnUiThread { tvStatus.text = "Таблица оценок не найдена" }
+                runOnUiThread {
+                    statusState = "Таблица оценок не найдена"
+                    publishState()
+                }
                 return
             }
 
@@ -346,7 +466,7 @@ class MainActivity : AppCompatActivity() {
             // Показываем список вместе с датами из базы (если база не сработала, то без дат)
             val display = report?.display ?: result
 
-            // Кэш: именно его увидим при следующем открытии и на экране аналитики
+            // Кэш: именно его увидим при следующем открытии и в разделе «Аналитика»
             cache.save(display, System.currentTimeMillis())
 
             // 4. Побочный эффект: интерфейс (только из главного потока)
@@ -359,8 +479,9 @@ class MainActivity : AppCompatActivity() {
             val hasNew = report?.changes?.any { it.type == ChangeType.ADDED } == true
 
             runOnUiThread {
-                adapter.submit(display)
-                tvStatus.text = "Обновлено в $time · $details"
+                gradesState = display
+                statusState = "Обновлено в $time · $details"
+                publishState()
                 if (hasNew) {
                     Toast.makeText(this@MainActivity, "Появились новые оценки!", Toast.LENGTH_LONG).show()
                 }
@@ -383,5 +504,9 @@ class MainActivity : AppCompatActivity() {
         if (modified > 0) parts.add("исправлено: $modified")
         if (removed > 0) parts.add("удалено: $removed")
         return if (parts.isEmpty()) "новых оценок нет" else parts.joinToString(" · ")
+    }
+
+    private companion object {
+        const val KEY_NAV = "nav_id"
     }
 }

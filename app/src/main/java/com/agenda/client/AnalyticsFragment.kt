@@ -2,59 +2,63 @@ package com.agenda.client
 
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * Экран аналитики: общий средний, средние по предметам и динамика.
+ * Раздел «Аналитика»: общий средний, средние по предметам и динамика.
  * Данные берём из кэша (там уже лежат оценки вместе с датами), в сеть не ходим.
+ * Логика та же, что была в AnalyticsActivity; изменилась только «оболочка».
  */
-class AnalyticsActivity : AppCompatActivity() {
+class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
 
     private var items: List<SubjectGrades> = emptyList()
     private var semesters: List<String> = emptyList()
     private var semesterIndex = 0
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_analytics)
-
-        items = SnapshotCache(this).load()
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        items = SnapshotCache(requireContext()).load()
         // семестры, в которых есть хотя бы одна оценка; по умолчанию показываем самый свежий
         semesters = items.filter { it.scores.isNotEmpty() }.map { it.semester }.distinct()
-        semesterIndex = (semesters.size - 1).coerceAtLeast(0)
+        val last = (semesters.size - 1).coerceAtLeast(0)
+        semesterIndex = (savedInstanceState?.getInt(KEY_SEMESTER) ?: last).coerceIn(0, last)
 
-        findViewById<Button>(R.id.btnBack).setOnClickListener { finish() }
-        findViewById<Button>(R.id.btnSemester).setOnClickListener {
+        view.findViewById<Button>(R.id.btnSemester).setOnClickListener {
             if (semesters.size > 1) {
                 semesterIndex = (semesterIndex + 1) % semesters.size
-                render()
+                render(view)
             }
         }
-        render()
+        render(view)
     }
 
-    private fun render() {
-        val tvSemester = findViewById<TextView>(R.id.tvSemester)
-        val tvOverall = findViewById<TextView>(R.id.tvOverall)
-        val tvInfo = findViewById<TextView>(R.id.tvInfo)
-        val tvChartHint = findViewById<TextView>(R.id.tvChartHint)
-        val chart = findViewById<LineChartView>(R.id.chart)
-        val container = findViewById<LinearLayout>(R.id.subjectsContainer)
-        val btnSemester = findViewById<Button>(R.id.btnSemester)
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_SEMESTER, semesterIndex)
+    }
+
+    private fun render(root: View) {
+        val tvSemester = root.findViewById<TextView>(R.id.tvSemester)
+        val tvOverall = root.findViewById<TextView>(R.id.tvOverall)
+        val tvInfo = root.findViewById<TextView>(R.id.tvInfo)
+        val tvChartHint = root.findViewById<TextView>(R.id.tvChartHint)
+        val chart = root.findViewById<LineChartView>(R.id.chart)
+        val container = root.findViewById<LinearLayout>(R.id.subjectsContainer)
+        val btnSemester = root.findViewById<Button>(R.id.btnSemester)
 
         container.removeAllViews()
 
         if (semesters.isEmpty()) {
             tvSemester.text = ""
             tvOverall.text = "—"
-            tvInfo.text = "Пока нет данных. Обнови оценки на главном экране."
+            tvInfo.text = "Пока нет данных. Обнови оценки в разделе «Оценки»."
             tvChartHint.text = ""
             chart.visibility = View.GONE
             btnSemester.visibility = View.GONE
@@ -91,8 +95,9 @@ class AnalyticsActivity : AppCompatActivity() {
         }
 
         // строки по предметам: сначала самые сильные
+        val inflater = LayoutInflater.from(requireContext())
         for (avg in averages.sortedByDescending { it.average }) {
-            val row = layoutInflater.inflate(R.layout.item_subject_avg, container, false)
+            val row = inflater.inflate(R.layout.item_subject_avg, container, false)
             row.findViewById<TextView>(R.id.tvAvgName).text = avg.subject
             row.findViewById<TextView>(R.id.tvAvgValue).text =
                 String.format(Locale.US, "%.2f  ·  оценок: %d", avg.average, avg.count)
@@ -101,5 +106,9 @@ class AnalyticsActivity : AppCompatActivity() {
             bar.progressTintList = ColorStateList.valueOf(GradeColors.forScore(avg.average))
             container.addView(row)
         }
+    }
+
+    private companion object {
+        const val KEY_SEMESTER = "semester_index"
     }
 }

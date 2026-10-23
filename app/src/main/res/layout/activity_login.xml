@@ -15,6 +15,35 @@
         android:textColor="@android:color/black"
         android:layout_marginBottom="32dp" />
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Я вхожу как"
+        android:textSize="14sp" />
+
+    <RadioGroup
+        android:id="@+id/rgRole"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/rbParent"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:checked="true"
+            android:text="Родитель" />
+
+        <RadioButton
+            android:id="@+id/rbStudent"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Ученик" />
+    </RadioGroup>
+
     <EditText
         android:id="@+id/etUsername"
         android:layout_width="match_parent"

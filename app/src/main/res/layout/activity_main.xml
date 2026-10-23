@@ -1,93 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#F5F5F5"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/tvWelcome"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Мои оценки"
-        android:textColor="#212121"
-        android:textSize="24sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="12dp"
-        android:text="Нажми «Обновить», чтобы загрузить оценки"
-        android:textColor="#757575"
-        android:textSize="14sp" />
-
-    <!-- Баннер "доступно обновление" (скрыт, пока обновления нет) -->
+    <!-- Основное содержимое: панель сверху, баннер обновления, область раздела -->
     <LinearLayout
-        android:id="@+id/updateBanner"
+        android:id="@+id/contentRoot"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:background="#E3F2FD"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:visibility="gone">
+        android:layout_height="match_parent"
+        android:background="#FFFFFF"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvUpdate"
-            android:layout_width="0dp"
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="#FFFFFF"
+            app:navigationContentDescription="Меню"
+            app:navigationIcon="@drawable/ic_menu"
+            app:navigationIconTint="#212121"
+            app:titleTextColor="#212121" />
+
+        <!-- Баннер "доступно обновление" (скрыт, пока обновления нет). Виден в любом разделе. -->
+        <LinearLayout
+            android:id="@+id/updateBanner"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#E3F2FD"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvUpdate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#0D47A1"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnUpdateDismiss"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="Позже" />
+        </LinearLayout>
+
+        <!-- Сюда MainActivity подставляет текущий раздел -->
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/content"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:textColor="#0D47A1"
-            android:textSize="14sp" />
+            android:background="#F5F5F5" />
 
-        <Button
-            android:id="@+id/btnUpdateDismiss"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:text="Позже" />
+        <!-- Скрытый WebView, который в фоне ходит на agenda.sime.md -->
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="invisible" />
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvGrades"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingBottom="8dp" />
-
-    <Button
-        android:id="@+id/btnRefresh"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_marginTop="8dp"
-        android:text="Обновить оценки" />
-
-    <Button
-        android:id="@+id/btnAnalytics"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_marginTop="8dp"
-        android:text="Аналитика" />
-
-    <Button
-        android:id="@+id/btnLogout"
-        style="?android:attr/borderlessButtonStyle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Сменить аккаунт" />
-
-    <!-- Скрытый WebView, который в фоне ходит на agenda.sime.md -->
-    <WebView
-        android:id="@+id/webView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="invisible" />
-
-</LinearLayout>
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/navView"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="#FFFFFF"
+        android:fitsSystemWindows="true"
+        app:headerLayout="@layout/nav_header"
+        app:itemIconTint="#424242"
+        app:itemShapeFillColor="@color/nav_item_fill"
+        app:itemTextColor="#212121"
+        app:menu="@menu/drawer_menu" />
+</androidx.drawerlayout.widget.DrawerLayout>

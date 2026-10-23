@@ -55,12 +55,16 @@ class CredentialStore(context: Context) {
         null // ключ потерян или данные повреждены -> считаем, что логина нет
     }
 
-    fun save(user: String, pass: String) {
+    fun save(user: String, pass: String, type: AccountType = AccountType.PARENT) {
         prefs.edit()
             .putString("u", encrypt(user))
             .putString("p", encrypt(pass))
+            .putString("t", type.key) // тип не секрет, шифровать незачем
             .apply()
     }
+
+    /** Тип аккаунта. Если не записан (вход сделан в старой версии), то это родитель. */
+    fun loadType(): AccountType = AccountType.fromKey(prefs.getString("t", null))
 
     fun load(): Pair<String, String>? {
         val u = prefs.getString("u", null)?.let { decrypt(it) } ?: return null
