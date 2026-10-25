@@ -9,7 +9,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Вы вошли как"
-        android:textColor="#757575"
+        android:textColor="@color/wyg_text_secondary"
         android:textSize="14sp" />
 
     <TextView
@@ -17,7 +17,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:textColor="#212121"
+        android:textColor="@color/wyg_text_primary"
         android:textSize="22sp"
         android:textStyle="bold" />
 
@@ -26,7 +26,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="#757575"
+        android:textColor="@color/wyg_text_secondary"
         android:textSize="14sp" />
 
     <TextView
@@ -35,7 +35,7 @@
         android:layout_marginTop="16dp"
         android:lineSpacingExtra="3dp"
         android:text="Логин и пароль хранятся на этом телефоне в зашифрованном виде. История оценок тоже хранится только здесь."
-        android:textColor="#424242"
+        android:textColor="@color/wyg_text_body"
         android:textSize="14sp" />
 
     <Button
@@ -50,6 +50,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="Смена аккаунта стирает логин, пароль и всю историю оценок на этом телефоне."
-        android:textColor="#757575"
+        android:textColor="@color/wyg_text_secondary"
         android:textSize="13sp" />
 </LinearLayout>

@@ -2,11 +2,11 @@ package com.agenda.client
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.content.ContextCompat
 import kotlin.math.floor
 
 /**
@@ -22,7 +22,7 @@ class LineChartView @JvmOverloads constructor(
     private var labels: List<String> = emptyList()
     private val density = resources.displayMetrics.density
 
-    private val lineColor = Color.parseColor("#1565C0")
+    private val lineColor = ContextCompat.getColor(context, R.color.wyg_chart_line)
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = lineColor
@@ -36,11 +36,11 @@ class LineChartView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
     private val gridPaint = Paint().apply {
-        color = Color.parseColor("#E0E0E0")
+        color = ContextCompat.getColor(context, R.color.wyg_chart_grid)
         strokeWidth = 1f * density
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#757575")
+        color = ContextCompat.getColor(context, R.color.wyg_text_secondary)
         textSize = 11f * density
     }
 

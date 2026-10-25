@@ -1,5 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Палитра приложения. Светлая тема здесь, тёмная в values-night/colors.xml: ТЕ ЖЕ имена, другие значения.
+  В layout и коде используются только эти имена (никаких #RRGGBB), поэтому смена темы не требует правок экранов.
+-->
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- фон и поверхности -->
+    <color name="wyg_background">#F5F5F5</color>
+    <color name="wyg_surface">#FFFFFF</color>
+
+    <!-- текст: основной, обычный, приглушённый, подсказки -->
+    <color name="wyg_text_primary">#212121</color>
+    <color name="wyg_text_body">#424242</color>
+    <color name="wyg_text_muted">#616161</color>
+    <color name="wyg_text_secondary">#757575</color>
+    <color name="wyg_text_hint">#9E9E9E</color>
+
+    <!-- акцент (синий) -->
+    <color name="wyg_primary">#1565C0</color>
+    <color name="wyg_on_primary">#FFFFFF</color>
+    <color name="wyg_accent_bg">#E3F2FD</color>
+    <color name="wyg_accent_text">#0D47A1</color>
+
+    <!-- график -->
+    <color name="wyg_chart_line">#1565C0</color>
+    <color name="wyg_chart_grid">#E0E0E0</color>
+
+    <!-- цвета оценок: на тёмном фоне светлее, чтобы читались -->
+    <color name="grade_excellent">#2E7D32</color>
+    <color name="grade_good">#F9A825</color>
+    <color name="grade_mid">#EF6C00</color>
+    <color name="grade_bad">#C62828</color>
 </resources>

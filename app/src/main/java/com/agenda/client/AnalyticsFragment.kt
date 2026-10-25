@@ -9,22 +9,29 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import com.google.android.material.tabs.TabLayout
 import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * Раздел «Аналитика»: общий средний, средние по предметам и динамика.
+ * Раздел «Аналитика»: две вкладки.
+ *  «Обзор»: общий средний, средние по предметам и динамика.
+ *  «Цель»: что нужно получить по предмету, чтобы дойти до целевого среднего (экран в GoalTab).
  * Данные берём из кэша (там уже лежат оценки вместе с датами), в сеть не ходим.
- * Логика та же, что была в AnalyticsActivity; изменилась только «оболочка».
+ * Семестр выбирается один раз сверху и действует на обе вкладки.
  */
 class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
 
     private var items: List<SubjectGrades> = emptyList()
     private var semesters: List<String> = emptyList()
     private var semesterIndex = 0
+    private var tabIndex = 0
+    private lateinit var goalTab: GoalTab
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         items = SnapshotCache(requireContext()).load()
+        goalTab = GoalTab(view, GoalStore(requireContext()))
+        setupTabs(view, savedInstanceState?.getInt(KEY_TAB) ?: 0)
         // семестры, в которых есть хотя бы одна оценка; по умолчанию показываем самый свежий
         semesters = items.filter { it.scores.isNotEmpty() }.map { it.semester }.distinct()
         val last = (semesters.size - 1).coerceAtLeast(0)
@@ -42,6 +49,31 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(KEY_SEMESTER, semesterIndex)
+        outState.putInt(KEY_TAB, tabIndex)
+    }
+
+    private fun setupTabs(root: View, initial: Int) {
+        val tabs = root.findViewById<TabLayout>(R.id.tabs)
+        tabIndex = initial.coerceIn(0, 1)
+        showTab(root)
+        // Сначала выбираем вкладку, и только потом вешаем слушатель: иначе выбор вызовет его сам
+        tabs.getTabAt(tabIndex)?.select()
+        tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                tabIndex = tab?.position ?: return
+                showTab(root)
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+    }
+
+    private fun showTab(root: View) {
+        root.findViewById<View>(R.id.overviewContent).visibility =
+            if (tabIndex == 0) View.VISIBLE else View.GONE
+        root.findViewById<View>(R.id.goalContent).visibility =
+            if (tabIndex == 1) View.VISIBLE else View.GONE
     }
 
     private fun render(root: View) {
@@ -62,11 +94,13 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
             tvChartHint.text = ""
             chart.visibility = View.GONE
             btnSemester.visibility = View.GONE
+            goalTab.bind("", emptyList())
             return
         }
 
         val semester = semesters[semesterIndex]
         val current = items.filter { it.semester == semester }
+        goalTab.bind(semester, current)
         tvSemester.text = semester.ifEmpty { "Семестр" }
         btnSemester.visibility = if (semesters.size > 1) View.VISIBLE else View.GONE
 
@@ -74,7 +108,7 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         val averages = Stats.subjectAverages(current)
         val overall = Stats.overall(averages)
         tvOverall.text = if (overall == null) "—" else String.format(Locale.US, "%.2f", overall)
-        if (overall != null) tvOverall.setTextColor(GradeColors.forScore(overall))
+        if (overall != null) tvOverall.setTextColor(GradeColors.forScore(requireContext(), overall))
 
         // динамика: только по оценкам, у которых известна дата
         val totalGrades = current.sumOf { it.scores.size }
@@ -103,12 +137,13 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
                 String.format(Locale.US, "%.2f  ·  оценок: %d", avg.average, avg.count)
             val bar = row.findViewById<ProgressBar>(R.id.pbAvg)
             bar.progress = (avg.average * 10).roundToInt().coerceIn(0, 100)
-            bar.progressTintList = ColorStateList.valueOf(GradeColors.forScore(avg.average))
+            bar.progressTintList = ColorStateList.valueOf(GradeColors.forScore(requireContext(), avg.average))
             container.addView(row)
         }
     }
 
     private companion object {
         const val KEY_SEMESTER = "semester_index"
+        const val KEY_TAB = "tab_index"
     }
 }

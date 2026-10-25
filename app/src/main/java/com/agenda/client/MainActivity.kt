@@ -24,7 +24,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
@@ -39,7 +38,7 @@ import java.util.Locale
 
 /**
  * Хозяин приложения: боковая шторка + «движок» (скрытый WebView, вход на портал, история оценок).
- * Разделы (Оценки, Аналитика, Аккаунт, О приложении) это фрагменты, которые меняются в области content.
+ * Разделы (Оценки, Аналитика, Аккаунт, Настройки, О приложении) это фрагменты, которые меняются в области content.
  * Новый раздел = пункт в res/menu/drawer_menu.xml + фрагмент + одна строка в sectionFor().
  */
 class MainActivity : AppCompatActivity(), AppHost {
@@ -162,10 +161,8 @@ class MainActivity : AppCompatActivity(), AppHost {
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets // не «съедаем», чтобы шторка тоже получила свои отступы
         }
-        // Фон светлый, значит значки в статус-баре и панели навигации должны быть тёмными
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.isAppearanceLightStatusBars = true
-        controller.isAppearanceLightNavigationBars = true
+        // Значки в статус-баре и панели навигации: тёмные на светлой теме, светлые на тёмной
+        SystemBars.matchTheme(this)
     }
 
     private fun setupNavigation(savedInstanceState: Bundle?) {
@@ -201,6 +198,7 @@ class MainActivity : AppCompatActivity(), AppHost {
     private fun sectionFor(navId: Int): Fragment = when (navId) {
         R.id.nav_analytics -> AnalyticsFragment()
         R.id.nav_account -> AccountFragment()
+        R.id.nav_settings -> SettingsFragment()
         R.id.nav_about -> AboutFragment()
         else -> GradesFragment()
     }
@@ -379,6 +377,7 @@ class MainActivity : AppCompatActivity(), AppHost {
         store.clear()                                       // логин и пароль
         cache.clear()                                       // сохранённый список оценок
         try { repo.clearAll() } catch (e: Exception) { Log.e(TAG, "Не удалось стереть историю: ${e.message}") }
+        GoalStore(this).clearAll()                          // цели по предметам
         CookieManager.getInstance().removeAllCookies(null)  // сессия портала
         WebStorage.getInstance().deleteAllData()            // данные страниц портала
         webView.clearCache(true)

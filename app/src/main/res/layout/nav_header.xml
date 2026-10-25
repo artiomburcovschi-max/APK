@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#E3F2FD"
+    android:background="@color/wyg_accent_bg"
     android:orientation="vertical"
     android:paddingStart="20dp"
     android:paddingTop="24dp"
@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="WatchYourGrade"
-        android:textColor="#0D47A1"
+        android:textColor="@color/wyg_accent_text"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -22,6 +22,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="#424242"
+        android:textColor="@color/wyg_text_body"
         android:textSize="14sp" />
 </LinearLayout>

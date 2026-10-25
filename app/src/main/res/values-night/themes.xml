@@ -1,7 +1,17 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Тема приложения. Цвета берутся из colors.xml, поэтому светлая и тёмная версии выглядят одинаково устроенными.
+         Содержимое совпадает с values-night/themes.xml: различаются только значения цветов в colors.xml. -->
     <style name="Base.Theme.AgendaApp" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <item name="colorPrimary">@color/wyg_primary</item>
+        <item name="colorOnPrimary">@color/wyg_on_primary</item>
+        <item name="colorPrimaryContainer">@color/wyg_accent_bg</item>
+        <item name="colorOnPrimaryContainer">@color/wyg_accent_text</item>
+        <item name="colorSurface">@color/wyg_surface</item>
+        <item name="colorOnSurface">@color/wyg_text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/wyg_text_secondary</item>
+        <item name="android:colorBackground">@color/wyg_background</item>
+        <item name="android:windowBackground">@color/wyg_background</item>
     </style>
+
+    <style name="Theme.AgendaApp" parent="Base.Theme.AgendaApp" />
 </resources>

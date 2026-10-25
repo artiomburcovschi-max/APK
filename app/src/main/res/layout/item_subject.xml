@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
-    app:cardBackgroundColor="#FFFFFF"
+    app:cardBackgroundColor="@color/wyg_surface"
     app:cardCornerRadius="14dp"
     app:cardElevation="2dp">
 
@@ -30,7 +30,7 @@
                     android:id="@+id/tvSubject"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#212121"
+                    android:textColor="@color/wyg_text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -39,7 +39,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:textColor="#757575"
+                    android:textColor="@color/wyg_text_secondary"
                     android:textSize="13sp" />
             </LinearLayout>
 
@@ -59,7 +59,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:lineSpacingExtra="3dp"
-            android:textColor="#424242"
+            android:textColor="@color/wyg_text_body"
             android:textSize="14sp"
             android:visibility="gone" />
     </LinearLayout>

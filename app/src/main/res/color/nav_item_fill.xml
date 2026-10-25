@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Подсветка выбранного пункта шторки: светло-голубой, остальные без фона -->
+<!-- Подсветка выбранного пункта шторки: акцентный фон, остальные без фона -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:color="#E3F2FD" android:state_checked="true" />
+    <item android:color="@color/wyg_accent_bg" android:state_checked="true" />
     <item android:color="#00000000" />
 </selector>
