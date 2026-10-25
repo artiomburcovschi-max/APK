@@ -10,25 +10,25 @@
         android:id="@+id/contentRoot"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FFFFFF"
+        android:background="@color/wyg_surface"
         android:orientation="vertical">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="#FFFFFF"
+            android:background="@color/wyg_surface"
             app:navigationContentDescription="Меню"
             app:navigationIcon="@drawable/ic_menu"
-            app:navigationIconTint="#212121"
-            app:titleTextColor="#212121" />
+            app:navigationIconTint="@color/wyg_text_primary"
+            app:titleTextColor="@color/wyg_text_primary" />
 
         <!-- Баннер "доступно обновление" (скрыт, пока обновления нет). Виден в любом разделе. -->
         <LinearLayout
             android:id="@+id/updateBanner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#E3F2FD"
+            android:background="@color/wyg_accent_bg"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="12dp"
@@ -39,7 +39,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="#0D47A1"
+                android:textColor="@color/wyg_accent_text"
                 android:textSize="14sp" />
 
             <Button
@@ -57,7 +57,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="#F5F5F5" />
+            android:background="@color/wyg_background" />
 
         <!-- Скрытый WebView, который в фоне ходит на agenda.sime.md -->
         <WebView
@@ -72,11 +72,11 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="#FFFFFF"
+        android:background="@color/wyg_surface"
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/nav_header"
-        app:itemIconTint="#424242"
+        app:itemIconTint="@color/wyg_text_body"
         app:itemShapeFillColor="@color/nav_item_fill"
-        app:itemTextColor="#212121"
+        app:itemTextColor="@color/wyg_text_primary"
         app:menu="@menu/drawer_menu" />
 </androidx.drawerlayout.widget.DrawerLayout>

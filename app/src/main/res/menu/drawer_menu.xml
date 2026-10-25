@@ -18,6 +18,10 @@
             android:icon="@drawable/ic_nav_account"
             android:title="Аккаунт" />
         <item
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/ic_nav_settings"
+            android:title="Настройки" />
+        <item
             android:id="@+id/nav_about"
             android:icon="@drawable/ic_nav_info"
             android:title="О приложении" />

@@ -9,7 +9,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="WatchYourGrade"
-        android:textColor="#212121"
+        android:textColor="@color/wyg_text_primary"
         android:textSize="22sp"
         android:textStyle="bold" />
 
@@ -18,7 +18,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:textColor="#757575"
+        android:textColor="@color/wyg_text_secondary"
         android:textSize="14sp" />
 
     <TextView
@@ -27,6 +27,6 @@
         android:layout_marginTop="16dp"
         android:lineSpacingExtra="3dp"
         android:text="Неофициальное приложение для просмотра оценок на портале agenda.sime.md. Оценки и история считаются и хранятся только на этом телефоне."
-        android:textColor="#424242"
+        android:textColor="@color/wyg_text_body"
         android:textSize="14sp" />
 </LinearLayout>

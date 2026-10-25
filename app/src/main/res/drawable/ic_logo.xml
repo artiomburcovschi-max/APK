@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Логотип: круг акцентного цвета и три растущих столбика (оценки растут) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="@color/wyg_primary"
+        android:pathData="M24,24m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0" />
+    <path
+        android:fillColor="@color/wyg_on_primary"
+        android:pathData="M13,26h6v8h-6zM21,20h6v14h-6zM29,13h6v21h-6z" />
+</vector>

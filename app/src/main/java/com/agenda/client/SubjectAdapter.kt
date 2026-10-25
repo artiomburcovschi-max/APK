@@ -1,6 +1,5 @@
 package com.agenda.client
 
-import android.graphics.Color
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -8,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
 
@@ -55,7 +55,7 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
 
         if (item.scores.isEmpty()) {
             holder.tvScores.text = "—"
-            holder.tvScores.setTextColor(Color.parseColor("#9E9E9E"))
+            holder.tvScores.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.wyg_text_hint))
             holder.tvDetails.visibility = View.GONE
             holder.itemView.setOnClickListener(null)
             return
@@ -68,7 +68,7 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
             val start = sb.length
             sb.append(score.toString())
             sb.setSpan(
-                ForegroundColorSpan(GradeColors.forScore(score.toDouble())),
+                ForegroundColorSpan(GradeColors.forScore(holder.itemView.context, score.toDouble())),
                 start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
         }
