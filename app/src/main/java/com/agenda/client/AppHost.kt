@@ -35,6 +35,15 @@ interface AppHost {
     /** Кнопка «Обновить»: Activity сама проверит, не рано ли ходить на портал. */
     fun requestRefresh()
 
+    /** Что установлено и что последний раз видели на сервере (для «О приложении»). */
+    val updateStatus: UpdateStatus
+
+    /** Ручная проверка обновлений. onResult вызывается в главном потоке. */
+    fun checkForUpdates(onResult: (UpdateCheckResult) -> Unit)
+
+    /** Открыть скачивание найденной версии (ссылка уже прошла проверку доверия). */
+    fun openUpdate(info: UpdateInfo)
+
     /** Спросить подтверждение и стереть все данные аккаунта с телефона. */
     fun confirmLogout()
 }

@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Основное содержимое: панель сверху, баннер обновления, область раздела -->
     <LinearLayout
         android:id="@+id/contentRoot"
         android:layout_width="match_parent"
@@ -23,7 +22,6 @@
             app:navigationIconTint="@color/wyg_text_primary"
             app:titleTextColor="@color/wyg_text_primary" />
 
-        <!-- Баннер "доступно обновление" (скрыт, пока обновления нет). Виден в любом разделе. -->
         <LinearLayout
             android:id="@+id/updateBanner"
             android:layout_width="match_parent"
@@ -51,7 +49,6 @@
                 android:text="Позже" />
         </LinearLayout>
 
-        <!-- Сюда MainActivity подставляет текущий раздел -->
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/content"
             android:layout_width="match_parent"
@@ -59,7 +56,7 @@
             android:layout_weight="1"
             android:background="@color/wyg_background" />
 
-        <!-- Скрытый WebView, который в фоне ходит на agenda.sime.md -->
+        <!-- WebView-->
         <WebView
             android:id="@+id/webView"
             android:layout_width="0dp"

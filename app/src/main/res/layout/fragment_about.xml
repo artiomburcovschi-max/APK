@@ -29,4 +29,102 @@
         android:text="Неофициальное приложение для просмотра оценок на портале agenda.sime.md. Оценки и история считаются и хранятся только на этом телефоне."
         android:textColor="@color/wyg_text_body"
         android:textSize="14sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Обновления"
+        android:textColor="@color/wyg_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvUpdateStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:lineSpacingExtra="3dp"
+        android:textColor="@color/wyg_text_secondary"
+        android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/btnCheckUpdate"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Проверить обновления" />
+
+    <TextView
+        android:id="@+id/tvUpdateResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/wyg_text_body"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/btnDownloadUpdate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Скачать обновление"
+        android:visibility="gone" />
+
+    <!-- РАЗДЕЛ: ССЫЛКИ И ИСТОЧНИКИ -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Ссылки"
+        android:textColor="@color/wyg_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <!-- Кликабельная строка: GitHub -->
+    <LinearLayout
+        android:id="@+id/layoutGithub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:layout_marginTop="8dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="GitHub Репозиторий"
+            android:textColor="@color/wyg_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Кликабельная строка: Почта -->
+    <LinearLayout
+        android:id="@+id/layoutEmail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:layout_marginTop="4dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="support.watchyourgrade@gmail.com"
+            android:textColor="@color/wyg_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
 </LinearLayout>

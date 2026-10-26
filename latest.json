@@ -1,8 +1,8 @@
 {
-  "versionCode": 402,
-  "versionName": "0.5.0",
-  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.5.0/WatchYourGrade.apk",
+  "versionCode": 403,
+  "versionName": "0.5.1",
+  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.5.1/WatchYourGrade.apk",
   "sha256": "ae8421dac854f08f2f96c102d0a17aabc805f524771b4dcdc6732503395306c0",
   "sizeBytes": 5398925,
-  "notes": "Добавлена улучшенная аналитика целей + удобный статус загрузки на главном экране"
+  "notes": "Исправил систему обновлений и улучшил о приложении"
 }

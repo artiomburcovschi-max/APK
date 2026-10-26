@@ -52,7 +52,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Раскрывается по нажатию на карточку: список "дата - оценка" -->
         <TextView
             android:id="@+id/tvDetails"
             android:layout_width="match_parent"

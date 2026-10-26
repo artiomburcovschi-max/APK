@@ -8,7 +8,7 @@ plugins {
 // Переменные версии приложения перед блоком android
 val vMajor = 0
 val vMinor = 5
-val vPatch = 0
+val vPatch = 1
 
 android {
     namespace = "com.agenda.client"

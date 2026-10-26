@@ -74,6 +74,21 @@ class MainActivity : AppCompatActivity(), AppHost {
     override val status: String get() = statusState
     override val username: String get() = usernameIntent
     override val accountType: AccountType get() = accountTypeValue
+    override val updateStatus: UpdateStatus get() = updater.status()
+
+    override fun checkForUpdates(onResult: (UpdateCheckResult) -> Unit) {
+        updater.checkNow { result ->
+            runOnUiThread {
+                // Человек сам попросил проверить: отложенное «не сейчас» больше не действует
+                if (result is UpdateCheckResult.Available) updater.clearDismissed()
+                showUpdateBanner()
+                onResult(result)
+            }
+        }
+    }
+
+    override fun openUpdate(info: UpdateInfo) = openUrl(info.apkUrl)
+
     override val progress: RefreshProgress? get() = progressState
     override val progressHidden: Boolean get() = progressHiddenState
 
@@ -151,8 +166,14 @@ class MainActivity : AppCompatActivity(), AppHost {
         if (RefreshPolicy.shouldAutoRefresh(cache.lastAttemptAt, System.currentTimeMillis())) {
             startRefresh()
         }
+    }
 
-        // Баннер "доступна новая версия": сначала из сохранённого, потом (раз в сутки) проверяем сервер
+    override fun onStart() {
+        super.onStart()
+        // Баннер "доступна новая версия" обновляем при КАЖДОМ выходе приложения на экран, а не только при создании
+        // Activity: процесс может жить днями в списке недавних, и onCreate за это время не вызывается ни разу
+        // (из-за этого свежая версия не появлялась, а после переустановки появлялась).
+        if (!::updater.isInitialized) return // onCreate мог завершиться раньше (нет логина)
         showUpdateBanner()
         updater.refreshIfDue { runOnUiThread { showUpdateBanner() } }
     }
