@@ -10,6 +10,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebStorage
@@ -62,6 +63,8 @@ class MainActivity : AppCompatActivity(), AppHost {
     // Состояние для экрана «Оценки». Живёт в Activity, поэтому переживает смену разделов.
     private var gradesState: List<SubjectGrades> = emptyList()
     private var statusState: String = ""
+    private var progressState: RefreshProgress? = null   // null = обновление не идёт
+    private var progressHiddenState = false
     private var stateListener: (() -> Unit)? = null
 
     private var currentNavId = R.id.nav_grades
@@ -71,6 +74,13 @@ class MainActivity : AppCompatActivity(), AppHost {
     override val status: String get() = statusState
     override val username: String get() = usernameIntent
     override val accountType: AccountType get() = accountTypeValue
+    override val progress: RefreshProgress? get() = progressState
+    override val progressHidden: Boolean get() = progressHiddenState
+
+    override fun hideProgress() {
+        progressHiddenState = true
+        publishState()
+    }
 
     override fun setStateListener(listener: (() -> Unit)?) {
         stateListener = listener
@@ -244,11 +254,31 @@ class MainActivity : AppCompatActivity(), AppHost {
                 return null
             }
 
+            // Нет сети или портал недоступен: без этого полоска зависла бы на «Загрузка…» навсегда.
+            // Реагируем только на ошибки соединения главной страницы (отмена прежней загрузки ошибкой не считается).
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                super.onReceivedError(view, request, error)
+                // В Kotlin константы Java-родителя доступны только через имя класса: WebViewClient.ERROR_*
+                val connectionErrors = listOf(
+                    WebViewClient.ERROR_HOST_LOOKUP, WebViewClient.ERROR_CONNECT,
+                    WebViewClient.ERROR_TIMEOUT, WebViewClient.ERROR_IO
+                )
+                val code = error?.errorCode
+                if (request?.isForMainFrame == true && code != null && code in connectionErrors) {
+                    val last = cache.lastSuccessAt
+                    val suffix = if (last > 0) ". Показаны данные от ${formatTime(last)}" else ""
+                    progressState = null
+                    statusState = "Не удалось открыть портал. Проверь интернет$suffix"
+                    publishState()
+                }
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 Log.d(TAG, "Страница загружена, URL: $url")
 
                 if (url?.contains("agenda.sime.md") == true) {
+                    advanceProgress(RefreshStage.PAGE_LOADED)
                     // JSONObject.quote() безопасно экранирует кавычки и спецсимволы
                     val userJs = JSONObject.quote(usernameIntent)
                     val passJs = JSONObject.quote(passwordIntent)
@@ -260,6 +290,12 @@ class MainActivity : AppCompatActivity(), AppHost {
                             if (window._agendaBotStarted) return;
                             window._agendaBotStarted = true;
                             window._tableWait = 0;
+
+                            // Сообщает приложению, на каком этапе вход. try/catch обязателен: сбой индикатора
+                            // не должен ломать сам вход.
+                            function prog(stage, sub) {
+                                try { window.AndroidBridge.onProgress(stage, sub); } catch(e) {}
+                            }
 
                             function diag() {
                                 try {
@@ -288,6 +324,7 @@ class MainActivity : AppCompatActivity(), AppHost {
                                         return;
                                     }
                                     window._tableWait++;
+                                    prog('WAITING_TABLE', window._tableWait);
                                     if (window._tableWait === 3) {
                                         try {
                                             apex.region('sem1').refresh();
@@ -314,6 +351,7 @@ class MainActivity : AppCompatActivity(), AppHost {
 
                                     if (userField.value === '' && !window._loginSubmitted) {
                                         window._loginSubmitted = true;
+                                        prog('LOGGING_IN', 0);
                                         console.log("Форма логина найдена, заполняем...");
                                         userField.value = $userJs;
                                         userField.dispatchEvent(new Event('input', { bubbles: true }));
@@ -346,6 +384,8 @@ class MainActivity : AppCompatActivity(), AppHost {
                                                 });
                                             }
                                         }, 500);
+                                    } else {
+                                        prog('SUBMITTED', (window._submitWait = (window._submitWait || 0) + 1));
                                     }
                                 } else if (!window._parentClicked) {
                                     // Шаг 3: открываем модалку входа для родителя (один раз)
@@ -355,7 +395,12 @@ class MainActivity : AppCompatActivity(), AppHost {
                                         window._parentClicked = true;
                                         console.log("Кликаем по кнопке входа: " + $roleJs);
                                         parentLink.click();
+                                        prog('CHOOSING_ROLE', 0);
+                                    } else {
+                                        prog('PAGE_LOADED', attempts);
                                     }
+                                } else {
+                                    prog('CHOOSING_ROLE', (window._roleWait = (window._roleWait || 0) + 1));
                                 }
 
                                 if (attempts > 30) {
@@ -412,21 +457,46 @@ class MainActivity : AppCompatActivity(), AppHost {
 
     private fun startRefresh() {
         cache.lastAttemptAt = System.currentTimeMillis() // фиксируем ПОПЫТКУ до запроса
-        statusState = "Загрузка..."
+        progressHiddenState = false // новое обновление снова показывает панель
+        progressState = RefreshProgress.advance(null, RefreshStage.OPENING)
+        statusState = loadingStatus(progressState!!)
         publishState()
         Log.d(TAG, "Переход на стартовую страницу")
         webView.loadUrl("https://agenda.sime.md/")
+    }
+
+    /** Строка статуса на время загрузки, например «Загрузка… 40%». */
+    private fun loadingStatus(p: RefreshProgress): String = "Загрузка… ${p.percent}%"
+
+    /**
+     * Продвигает полоску. Только из главного потока. Если обновление уже закончилось (progressState == null),
+     * запоздалый сигнал игнорируется, иначе конец загрузки «оживал» бы заново.
+     */
+    private fun advanceProgress(stage: RefreshStage, sub: Int = 0) {
+        val current = progressState ?: return
+        val next = RefreshProgress.advance(current, stage, sub)
+        progressState = next
+        statusState = loadingStatus(next)
+        publishState()
     }
 
     private fun formatTime(millis: Long): String =
         SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(Date(millis))
 
     inner class WebAppInterface {
+        /** Сигнал от JS-автомата: этап входа и сколько секунд он уже длится. Неизвестный этап игнорируем. */
+        @JavascriptInterface
+        fun onProgress(stage: String, sub: Int) {
+            val parsed = RefreshStage.fromName(stage) ?: return
+            runOnUiThread { advanceProgress(parsed, sub) }
+        }
+
         @JavascriptInterface
         fun onTimeout() {
             val last = cache.lastSuccessAt
             val suffix = if (last > 0) ". Показаны данные от ${formatTime(last)}" else ""
             runOnUiThread {
+                progressState = null
                 statusState = "Не удалось войти (${accountTypeValue.label.lowercase()}). Проверь логин, пароль и тип входа. Сменить их можно в разделе «Аккаунт»$suffix"
                 publishState()
             }
@@ -435,6 +505,8 @@ class MainActivity : AppCompatActivity(), AppHost {
         @JavascriptInterface
         fun processHTML(html: String) {
             Log.d(TAG, "HTML успешно получен в Kotlin. Размер: ${html.length} символов")
+
+            runOnUiThread { advanceProgress(RefreshStage.READING) }
 
             // 1. Чистая логика: HTML -> список предметов (без Android-зависимостей)
             val result = GradesParser.parse(html)
@@ -445,6 +517,7 @@ class MainActivity : AppCompatActivity(), AppHost {
             if (result.isEmpty()) {
                 Log.d(TAG, "Таблицы report_table_sem* не найдены или пусты.")
                 runOnUiThread {
+                    progressState = null
                     statusState = "Таблица оценок не найдена"
                     publishState()
                 }
@@ -453,6 +526,7 @@ class MainActivity : AppCompatActivity(), AppHost {
 
             // 3. Локальная история: сравниваем со снимком в базе, записываем разницу и проставляем даты.
             //    recent = блок "Note recente" с настоящими датами оценок.
+            runOnUiThread { advanceProgress(RefreshStage.SAVING) }
             val recent = RecentEvalParser.parse(html)
             Log.d(TAG, "Свежих оценок с датами на странице: ${recent.size}")
             val report = try {
@@ -479,6 +553,7 @@ class MainActivity : AppCompatActivity(), AppHost {
 
             runOnUiThread {
                 gradesState = display
+                progressState = null // обновление закончено: панель и процент пропадают, остаётся итоговая строка
                 statusState = "Обновлено в $time · $details"
                 publishState()
                 if (hasNew) {

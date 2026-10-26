@@ -1,8 +1,8 @@
 {
-  "versionCode": 400,
-  "versionName": "0.4.0",
-  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.4.0/WatchYourGrade.apk",
-  "sha256": "8cbdb80f8037ee73dce86c4ba21362f092ce26ae2d567d28a29327980aaac654",
-  "sizeBytes": 5389337,
-  "notes": "Добавлен калькулятор желаемого среднего балла со всеми вариантами оценок и тёмная тема"
+  "versionCode": 401,
+  "versionName": "0.4.1",
+  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.4.1/WatchYourGrade.apk",
+  "sha256": "714e527a4ebdf4948ac2280a4efda3e5ca94e55230ce4f8c5430a749c9c7e5e3",
+  "sizeBytes": 5379713,
+  "notes": "Обновлена иконка приложения и название"
 }

@@ -20,6 +20,15 @@ interface AppHost {
     /** Кем вошли: родитель или ученик. */
     val accountType: AccountType
 
+    /** Ход обновления: null, если обновление не идёт. Проценты примерные (см. RefreshStage). */
+    val progress: RefreshProgress?
+
+    /** Человек нажал «Скрыть» на панели прогресса (до начала следующего обновления). */
+    val progressHidden: Boolean
+
+    /** Кнопка «Скрыть» на панели прогресса. Само обновление продолжается. */
+    fun hideProgress()
+
     /** Экран подписывается на изменения; при уходе обязан отписаться (передать null). */
     fun setStateListener(listener: (() -> Unit)?)
 

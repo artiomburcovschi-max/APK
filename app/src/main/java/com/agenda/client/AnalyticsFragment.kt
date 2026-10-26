@@ -94,13 +94,13 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
             tvChartHint.text = ""
             chart.visibility = View.GONE
             btnSemester.visibility = View.GONE
-            goalTab.bind("", emptyList())
+            goalTab.bind("", emptyList(), emptyList())
             return
         }
 
         val semester = semesters[semesterIndex]
         val current = items.filter { it.semester == semester }
-        goalTab.bind(semester, current)
+        goalTab.bind(semester, current, items)
         tvSemester.text = semester.ifEmpty { "Семестр" }
         btnSemester.visibility = if (semesters.size > 1) View.VISIBLE else View.GONE
 

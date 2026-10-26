@@ -135,9 +135,63 @@
                     android:id="@+id/tvGoalIntro"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Выбери предмет и цель: покажу, какие оценки нужны, чтобы её достичь, и насколько это реально."
+                    android:text="Поставь цель для предмета или для общего среднего: покажу, какие оценки нужны, чтобы её достичь, и насколько это реально."
                     android:textColor="@color/wyg_text_secondary"
                     android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleGoalScope"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:checkedButton="@id/btnScopeSubject"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnScopeSubject"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Предмет" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnScopeOverall"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Общий средний" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <!-- Период: виден, только если есть оценки минимум за два семестра -->
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleGoalPeriod"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    app:checkedButton="@id/btnPeriodSemester"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPeriodSemester"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Семестр" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPeriodYear"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Год" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilGoalSubject"
@@ -153,6 +207,15 @@
                         android:layout_height="wrap_content"
                         android:inputType="none" />
                 </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:id="@+id/tvGoalCurrent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/wyg_text_body"
+                    android:textSize="16sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilGoalTarget"
@@ -233,22 +296,6 @@
                             android:layout_height="wrap_content"
                             android:textSize="18sp"
                             android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvGoalNow"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:textColor="@color/wyg_text_secondary"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:id="@+id/tvGoalOptionsTitle"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="14dp"
-                            android:textColor="@color/wyg_text_body"
-                            android:textSize="14sp" />
 
                         <LinearLayout
                             android:id="@+id/goalOptionsContainer"

@@ -13,13 +13,22 @@ enum class GoalDifficulty { EASY, HARD, VERY_HARD }
 /** «count штук оценки grade». */
 data class GradeCount(val grade: Int, val count: Int)
 
+/**
+ * Серия из count новых оценок: их сумма должна быть не меньше minSum.
+ * example = одно из подходящих сочетаний (оценки как можно ровнее, например 10 + 10 + 9 + 9).
+ */
+data class SeriesOption(val count: Int, val minSum: Int, val example: List<GradeCount>)
+
 data class GoalPlan(
     val status: GoalStatus,
     val target: Double,
     val average: Double,
     val gradesCount: Int,
     val options: List<GradeCount> = emptyList(),
-    val difficulty: GoalDifficulty? = null
+    val difficulty: GoalDifficulty? = null,
+    val series: List<SeriesOption> = emptyList(),
+    /** Целая цель (например 9): оценка, равная ей, средний к цели не доведёт, только приблизит. */
+    val equalGrade: Int? = null
 )
 
 /**
@@ -43,6 +52,12 @@ object GoalPlanner {
 
     /** Серия до 7 оценок: тяжело, но возможно. Дальше цель «почти нереальна». Пороги условные. */
     const val HARD_MAX = 7
+
+    /** Серии показываем, только если цель достижима не дальше чем за столько оценок (иначе это шум). */
+    const val SERIES_MAX_START = 10
+
+    /** Сколько строк серий показывать: от минимально возможной длины плюс ещё столько. */
+    const val SERIES_EXTRA = 5
 
     /** "8,5" и "8.5" -> 8.5; пусто и мусор -> null. */
     fun parseTarget(text: CharSequence?): Double? {
@@ -95,9 +110,36 @@ object GoalPlanner {
         if (options.isEmpty()) return GoalPlan(GoalStatus.UNREACHABLE, target, average, n)
 
         // у большей оценки k меньше, значит лучший вариант всегда первый (самая высокая g)
+        val kMin = options.first().count
         return GoalPlan(
-            GoalStatus.REACHABLE, target, average, n, options, difficultyOf(options.first().count)
+            GoalStatus.REACHABLE, target, average, n, options, difficultyOf(kMin),
+            series = series(need, t100, kMin),
+            equalGrade = if (t100 % 100 == 0L) (t100 / 100).toInt() else null
         )
+    }
+
+    /**
+     * Серии: для каждого числа новых оценок k считаем, какой должна быть их СУММА.
+     * Условие цели: 100*(сумма + X) >= цель100 * (n + k), где X = сумма новых.
+     * Перенося: X >= (need + цель100 * k) / 100, где need = цель100*n - 100*сумма. Берём целое вверх.
+     * Для k >= kMin это не больше 10*k, то есть серия из десяток всегда проходит, а значит, сочетание существует.
+     */
+    private fun series(need: Long, t100: Long, kMin: Int): List<SeriesOption> {
+        if (kMin > SERIES_MAX_START) return emptyList()
+        return (kMin..kMin + SERIES_EXTRA).map { k ->
+            val minSum = ceilDiv(need + t100 * k, 100).toInt()
+            SeriesOption(k, minSum, evenSplit(minSum, k))
+        }
+    }
+
+    /** Раскладывает сумму на k оценок как можно ровнее: 29 на 3 -> 10 + 10 + 9, 38 на 4 -> 10 + 10 + 9 + 9. */
+    private fun evenSplit(sum: Int, k: Int): List<GradeCount> {
+        val base = sum / k
+        val higher = sum % k // у стольких оценок будет base + 1
+        val result = mutableListOf<GradeCount>()
+        if (higher > 0) result.add(GradeCount(base + 1, higher))
+        if (k - higher > 0) result.add(GradeCount(base, k - higher))
+        return result
     }
 
     private fun ceilDiv(a: Long, b: Long): Long = (a + b - 1) / b // a >= 0, b > 0

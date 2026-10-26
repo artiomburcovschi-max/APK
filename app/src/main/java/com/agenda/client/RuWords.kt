@@ -37,4 +37,7 @@ object RuWords {
         val f = forms[grade] ?: return "$count × $grade"
         return "$count " + plural(count, f.first, f.second, f.third)
     }
+
+    /** «десятки», «девятки»: оценка во множественном числе, без числа перед ней. */
+    fun gradePlural(grade: Int): String = forms[grade]?.second ?: "оценки $grade"
 }

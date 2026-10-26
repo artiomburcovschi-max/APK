@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -25,9 +26,24 @@ class GradesFragment : Fragment(R.layout.fragment_grades) {
         val tvStatus = view.findViewById<TextView>(R.id.tvStatus)
         view.findViewById<Button>(R.id.btnRefresh).setOnClickListener { h.requestRefresh() }
 
+        val panel = view.findViewById<View>(R.id.progressPanel)
+        val tvAction = view.findViewById<TextView>(R.id.tvProgressAction)
+        val bar = view.findViewById<LinearProgressIndicator>(R.id.progressBar)
+        view.findViewById<Button>(R.id.btnProgressHide).setOnClickListener { h.hideProgress() }
+
         fun render() {
             adapter.submit(h.grades)
             tvStatus.text = h.status
+
+            // Панель видна, пока идёт обновление и человек её не скрыл (строка статуса с процентом остаётся всегда)
+            val progress = h.progress
+            if (progress != null && !h.progressHidden) {
+                panel.visibility = View.VISIBLE
+                tvAction.text = "Сейчас: ${progress.stage.label}"
+                bar.setProgressCompat(progress.percent, true)
+            } else {
+                panel.visibility = View.GONE
+            }
         }
         h.setStateListener { render() }
         render()

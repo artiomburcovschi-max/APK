@@ -155,4 +155,69 @@ class GoalPlannerTest {
             }
         }
     }
+
+    // ---- серии разных оценок ----
+
+    @Test
+    fun seriesForTargetNineFromEightAndAHalf() {
+        // 8, 9, 8, 9: сумма 34 из 4 (средний 8.5), цель 9: нужны две десятки, девятки к 9.00 не ведут.
+        // Но десятки можно «разбавлять» девятками: 10+10+9 даёт (34+29)/7 = 9.0
+        val plan = GoalPlanner.plan(listOf(8, 9, 8, 9), 9.0)
+
+        assertEquals(listOf(10 to 2), counts(plan))
+        assertEquals(9, plan.equalGrade)
+        assertEquals(listOf(2, 3, 4, 5, 6, 7), plan.series.map { it.count })
+        assertEquals(listOf(20, 29, 38, 47, 56, 65), plan.series.map { it.minSum })
+        assertEquals(listOf(10 to 2), plan.series[0].example.map { it.grade to it.count })
+        assertEquals(listOf(10 to 2, 9 to 1), plan.series[1].example.map { it.grade to it.count })
+    }
+
+    @Test
+    fun seriesEventuallyAllowLowerGrades() {
+        // сумма 40 из 5, цель 8.5: с семью оценками хватит шести девяток и одной восьмёрки
+        val plan = GoalPlanner.plan(listOf(8, 8, 8, 8, 8), 8.5)
+        val seven = plan.series.first { it.count == 7 }
+
+        assertEquals(listOf(9 to 6, 8 to 1), seven.example.map { it.grade to it.count })
+        assertNull(plan.equalGrade) // 8.5 не целая: «равной» оценки нет
+    }
+
+    @Test
+    fun noSeriesWhenGoalIsTooFar() {
+        // 45 десяток: показывать серии из 45+ оценок бессмысленно
+        assertTrue(GoalPlanner.plan(listOf(5, 5, 5, 5, 5), 9.5).series.isEmpty())
+    }
+
+    @Test
+    fun evenSplitKeepsGradesWithinOnePointAndSumsUp() {
+        val samples = listOf(
+            listOf(5), listOf(7, 8), listOf(6, 6, 7), listOf(8, 9, 7, 10, 6), listOf(4, 5, 5, 6),
+            listOf(8, 9, 8, 9), listOf(7, 7, 7, 7, 7, 7, 7), listOf(10, 3), listOf(2, 2, 2)
+        )
+        val targets = listOf(5.0, 5.5, 6.0, 6.5, 7.0, 7.25, 7.5, 8.0, 8.5, 8.75, 9.0, 9.5, 9.99)
+
+        for (scores in samples) for (target in targets) {
+            val plan = GoalPlanner.plan(scores, target)
+            if (plan.status != GoalStatus.REACHABLE) continue
+            val n = scores.size
+            val s = scores.sum()
+            val t100 = Math.round(target * 100)
+            for (option in plan.series) {
+                val k = option.count
+                val example = option.example
+                val sum = example.sumOf { it.grade * it.count }
+                assertEquals("$scores цель $target k=$k: в примере ровно k оценок", k, example.sumOf { it.count })
+                assertEquals("$scores цель $target k=$k: сумма примера = minSum", option.minSum, sum)
+                assertTrue("оценки в примере от 1 до 10", example.all { it.grade in 1..10 })
+                assertTrue("оценки в примере различаются не больше чем на 1",
+                    example.maxOf { it.grade } - example.minOf { it.grade } <= 1)
+                // достаточно: с этой суммой цель достигнута
+                assertTrue("$scores цель $target k=$k: сумма $sum должна хватать",
+                    100L * (s + sum) >= t100 * (n + k))
+                // минимально: на единицу меньше уже не хватает
+                assertTrue("$scores цель $target k=$k: сумма ${sum - 1} уже не должна хватать",
+                    100L * (s + sum - 1) < t100 * (n + k))
+            }
+        }
+    }
 }
