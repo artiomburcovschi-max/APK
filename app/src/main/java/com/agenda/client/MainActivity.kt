@@ -74,6 +74,8 @@ class MainActivity : AppCompatActivity(), AppHost {
     override val status: String get() = statusState
     override val username: String get() = usernameIntent
     override val accountType: AccountType get() = accountTypeValue
+    override fun recentGrades(): List<FeedItem> = repo.recentFeed()
+
     override val updateStatus: UpdateStatus get() = updater.status()
 
     override fun checkForUpdates(onResult: (UpdateCheckResult) -> Unit) {
@@ -162,10 +164,7 @@ class MainActivity : AppCompatActivity(), AppHost {
             statusState = "Нажми «Обновить», чтобы загрузить оценки"
         }
 
-        // На портал идём только если данные устарели
-        if (RefreshPolicy.shouldAutoRefresh(cache.lastAttemptAt, System.currentTimeMillis())) {
-            startRefresh()
-        }
+        // Автообновление оценок решается в onStart(): оно срабатывает и при запуске, и при возврате в приложение
     }
 
     override fun onStart() {
@@ -173,7 +172,17 @@ class MainActivity : AppCompatActivity(), AppHost {
         // Баннер "доступна новая версия" обновляем при КАЖДОМ выходе приложения на экран, а не только при создании
         // Activity: процесс может жить днями в списке недавних, и onCreate за это время не вызывается ни разу
         // (из-за этого свежая версия не появлялась, а после переустановки появлялась).
-        if (!::updater.isInitialized) return // onCreate мог завершиться раньше (нет логина)
+        if (!::webView.isInitialized) return // onCreate мог завершиться раньше (нет логина)
+
+        // Автообновление оценок при КАЖДОМ выходе на экран, не только при создании: приложение может днями
+        // жить в списке недавних, и тогда оценки так и оставались бы вчерашними. Частоту ограничивает
+        // RefreshPolicy (не чаще раза в 30 минут), а идущее обновление повторно не запускаем.
+        if (progressState == null &&
+            RefreshPolicy.shouldAutoRefresh(cache.lastAttemptAt, System.currentTimeMillis())
+        ) {
+            startRefresh()
+        }
+
         showUpdateBanner()
         updater.refreshIfDue { runOnUiThread { showUpdateBanner() } }
     }
@@ -227,6 +236,7 @@ class MainActivity : AppCompatActivity(), AppHost {
     }
 
     private fun sectionFor(navId: Int): Fragment = when (navId) {
+        R.id.nav_recent -> RecentFragment()
         R.id.nav_analytics -> AnalyticsFragment()
         R.id.nav_account -> AccountFragment()
         R.id.nav_settings -> SettingsFragment()

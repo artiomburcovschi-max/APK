@@ -8,6 +8,7 @@ import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -47,6 +48,14 @@ class GoalTab(root: View, private val store: GoalStore) {
     private val optionsContainer = root.findViewById<LinearLayout>(R.id.goalOptionsContainer)
     private val tvNote = root.findViewById<TextView>(R.id.tvGoalNote)
 
+    // «А что если»
+    private val cardWhatIf = root.findViewById<MaterialCardView>(R.id.cardWhatIf)
+    private val chipsWhatIf = root.findViewById<ChipGroup>(R.id.chipsWhatIf)
+    private val tvWhatIfAdded = root.findViewById<TextView>(R.id.tvWhatIfAdded)
+    private val tvWhatIfResult = root.findViewById<TextView>(R.id.tvWhatIfResult)
+    private val btnWhatIfReset = root.findViewById<Button>(R.id.btnWhatIfReset)
+    private val whatIfGrades = mutableListOf<Int>() // гипотетические оценки, живут только на экране
+
     private var semester = ""
     private var semesterItems: List<SubjectGrades> = emptyList()
     private var allItems: List<SubjectGrades> = emptyList()
@@ -80,6 +89,18 @@ class GoalTab(root: View, private val store: GoalStore) {
         }
 
         etTarget.doAfterTextChanged { if (!updatingTarget) onTargetEdited() }
+
+        for (i in 0 until chipsWhatIf.childCount) {
+            val chip = chipsWhatIf.getChildAt(i) as Chip
+            chip.setOnClickListener {
+                if (whatIfGrades.size < WhatIf.MAX_ADDED) whatIfGrades.add(chip.text.toString().toInt())
+                renderWhatIf()
+            }
+        }
+        btnWhatIfReset.setOnClickListener {
+            whatIfGrades.clear()
+            renderWhatIf()
+        }
 
         // Подсказки (7, 8, 9, 9.5) просто вписывают число в поле; дальше работает обычный ввод
         for (i in 0 until chips.childCount) {
@@ -129,9 +150,43 @@ class GoalTab(root: View, private val store: GoalStore) {
     }
 
     private fun onSelectionChanged() {
+        whatIfGrades.clear() // другой предмет, период или данные: прежние гипотетические оценки не к месту
         showCurrent()
         loadTarget()
         render()
+        renderWhatIf()
+    }
+
+    /** «А что если»: карточка только для одного предмета; считает и показывает, ничего не сохраняет. */
+    private fun renderWhatIf() {
+        val subject = selected
+        if (scope != Scope.SUBJECT || subject == null) {
+            cardWhatIf.visibility = View.GONE
+            return
+        }
+        cardWhatIf.visibility = View.VISIBLE
+
+        val added = WhatIf.addedText(whatIfGrades)
+        tvWhatIfAdded.text = added
+        tvWhatIfAdded.visibility = if (added.isEmpty()) View.GONE else View.VISIBLE
+        btnWhatIfReset.visibility = if (whatIfGrades.isEmpty()) View.GONE else View.VISIBLE
+
+        val lines = if (whatIfGrades.isEmpty()) null else WhatIf.compute(subjects, subject.name, whatIfGrades)
+        if (lines == null) {
+            tvWhatIfResult.visibility = View.GONE
+            return
+        }
+        val text = SpannableStringBuilder()
+        for ((index, line) in lines.withIndex()) {
+            if (index > 0) text.append("\n")
+            text.append(line.text).append("  ")
+            val start = text.length
+            text.append(line.deltaText)
+            text.setSpan(ForegroundColorSpan(toneColor(line.tone)), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text.setSpan(StyleSpan(Typeface.BOLD), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        tvWhatIfResult.text = text
+        tvWhatIfResult.visibility = View.VISIBLE
     }
 
     // ----- цель: хранение -----

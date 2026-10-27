@@ -7,6 +7,9 @@ import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.google.android.material.tabs.TabLayout
@@ -133,8 +136,21 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         for (avg in averages.sortedByDescending { it.average }) {
             val row = inflater.inflate(R.layout.item_subject_avg, container, false)
             row.findViewById<TextView>(R.id.tvAvgName).text = avg.subject
-            row.findViewById<TextView>(R.id.tvAvgValue).text =
+            val value = SpannableStringBuilder(
                 String.format(Locale.US, "%.2f  ·  оценок: %d", avg.average, avg.count)
+            )
+            val trend = Trend.of(current.firstOrNull { it.subject == avg.subject }?.scores.orEmpty())
+            val arrow = Trend.arrow(trend.direction)
+            if (arrow.isNotEmpty()) {
+                value.append("  ")
+                val start = value.length
+                value.append(arrow)
+                value.setSpan(
+                    ForegroundColorSpan(GradeColors.forTrend(requireContext(), trend.direction)),
+                    start, value.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            row.findViewById<TextView>(R.id.tvAvgValue).text = value
             val bar = row.findViewById<ProgressBar>(R.id.pbAvg)
             bar.progress = (avg.average * 10).roundToInt().coerceIn(0, 100)
             bar.progressTintList = ColorStateList.valueOf(GradeColors.forScore(requireContext(), avg.average))

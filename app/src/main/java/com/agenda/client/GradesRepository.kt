@@ -155,6 +155,26 @@ class GradesRepository(context: Context) {
         }
     }
 
+    /** Лента «Новые оценки»: что приложение заметило после первой загрузки (см. RecentFeed). */
+    @Synchronized
+    fun recentFeed(limit: Int = RecentFeed.DEFAULT_LIMIT): List<FeedItem> {
+        val rows = mutableListOf<GradeRow>()
+        helper.readableDatabase.rawQuery(
+            "SELECT semester, subject, position, score, first_seen_at, updated_at, grade_date FROM grades",
+            null
+        ).use { c ->
+            while (c.moveToNext()) {
+                rows.add(
+                    GradeRow(
+                        c.getString(0), c.getString(1), c.getInt(2), c.getInt(3),
+                        c.getLong(4), c.getLong(5), if (c.isNull(6)) null else c.getString(6)
+                    )
+                )
+            }
+        }
+        return RecentFeed.build(rows, limit)
+    }
+
     /** Все оценки из базы: (семестр, предмет) -> список оценок по порядку. */
     private fun loadAll(db: SQLiteDatabase): Map<Pair<String, String>, List<StoredGrade>> {
         val result = HashMap<Pair<String, String>, MutableList<StoredGrade>>()

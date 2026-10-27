@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-
+<!-- Верх (семестр и вкладки) закреплён, прокручивается только содержимое вкладки.
+     Семестр общий для обеих вкладок: «Цель» считает по выбранному здесь семестру. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -59,6 +60,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
+            <!-- Вкладка «Обзор»: то, что было в аналитике раньше -->
             <LinearLayout
                 android:id="@+id/overviewContent"
                 android:layout_width="match_parent"
@@ -120,7 +122,7 @@
                     android:orientation="vertical" />
             </LinearLayout>
 
-            <!-- Вкладка Цель-->
+            <!-- Вкладка «Цель» -->
             <LinearLayout
                 android:id="@+id/goalContent"
                 android:layout_width="match_parent"
@@ -163,6 +165,7 @@
                         android:text="Общий средний" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
+                <!-- Период: виден, только если есть оценки минимум за два семестра -->
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/toggleGoalPeriod"
                     android:layout_width="match_parent"
@@ -308,6 +311,112 @@
                             android:layout_marginTop="12dp"
                             android:textColor="@color/wyg_text_secondary"
                             android:textSize="12sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- «А что если»: только для одного предмета; в данные ничего не записывается -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardWhatIf"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="@color/wyg_surface"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="2dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="А что если получить…"
+                            android:textColor="@color/wyg_text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Нажимай на оценки: покажу, как изменятся средний выбранного предмета и общий. Настоящие данные не меняются."
+                            android:textColor="@color/wyg_text_secondary"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/chipsWhatIf"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp">
+
+                            <com.google.android.material.chip.Chip
+                                style="@style/Widget.Material3.Chip.Suggestion"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="5" />
+
+                            <com.google.android.material.chip.Chip
+                                style="@style/Widget.Material3.Chip.Suggestion"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="6" />
+
+                            <com.google.android.material.chip.Chip
+                                style="@style/Widget.Material3.Chip.Suggestion"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="7" />
+
+                            <com.google.android.material.chip.Chip
+                                style="@style/Widget.Material3.Chip.Suggestion"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="8" />
+
+                            <com.google.android.material.chip.Chip
+                                style="@style/Widget.Material3.Chip.Suggestion"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="9" />
+
+                            <com.google.android.material.chip.Chip
+                                style="@style/Widget.Material3.Chip.Suggestion"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="10" />
+                        </com.google.android.material.chip.ChipGroup>
+
+                        <TextView
+                            android:id="@+id/tvWhatIfAdded"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/wyg_text_body"
+                            android:textSize="14sp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tvWhatIfResult"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:lineSpacingExtra="4dp"
+                            android:textColor="@color/wyg_text_body"
+                            android:textSize="15sp"
+                            android:visibility="gone" />
+
+                        <Button
+                            android:id="@+id/btnWhatIfReset"
+                            style="?android:attr/borderlessButtonStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Сбросить"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>

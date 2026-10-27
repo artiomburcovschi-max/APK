@@ -10,6 +10,10 @@
             android:icon="@drawable/ic_nav_grades"
             android:title="Оценки" />
         <item
+            android:id="@+id/nav_recent"
+            android:icon="@drawable/ic_nav_recent"
+            android:title="Новые оценки" />
+        <item
             android:id="@+id/nav_analytics"
             android:icon="@drawable/ic_nav_analytics"
             android:title="Аналитика" />

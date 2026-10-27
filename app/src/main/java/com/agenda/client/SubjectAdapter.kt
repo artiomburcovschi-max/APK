@@ -1,8 +1,10 @@
 package com.agenda.client
 
+import android.graphics.Typeface
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -51,7 +53,21 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
         if (item.media.isNotEmpty()) parts.add(item.media)
         val lastDate = item.dates.lastOrNull()?.let { GradeDates.toDisplay(it) }
         if (lastDate != null) parts.add("последняя: $lastDate")
-        holder.tvAverage.text = parts.joinToString(" · ")
+        // тренд: стрелка после подписи (только рост и падение) и пояснение в раскрытой карточке
+        val trend = Trend.of(item.scores)
+        val subtitle = SpannableStringBuilder(parts.joinToString(" · "))
+        val arrow = Trend.arrow(trend.direction)
+        if (arrow.isNotEmpty()) {
+            subtitle.append("  ")
+            val start = subtitle.length
+            subtitle.append(arrow)
+            subtitle.setSpan(
+                ForegroundColorSpan(GradeColors.forTrend(holder.itemView.context, trend.direction)),
+                start, subtitle.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            subtitle.setSpan(StyleSpan(Typeface.BOLD), start, subtitle.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        holder.tvAverage.text = subtitle
 
         if (item.scores.isEmpty()) {
             holder.tvScores.text = "—"
@@ -88,9 +104,12 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
         }
     }
 
-    private fun detailsText(item: SubjectGrades): String =
-        item.scores.mapIndexed { i, score ->
+    private fun detailsText(item: SubjectGrades): String {
+        val lines = item.scores.mapIndexed { i, score ->
             val date = item.dates.getOrNull(i)?.let { GradeDates.toDisplay(it) } ?: "дата неизвестна"
             "$date  —  $score"
-        }.joinToString("\n")
+        }
+        val trend = Trend.describe(Trend.of(item.scores))
+        return if (trend == null) lines.joinToString("\n") else (lines + "" + trend).joinToString("\n")
+    }
 }

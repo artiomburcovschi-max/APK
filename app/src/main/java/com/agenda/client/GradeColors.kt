@@ -14,6 +14,12 @@ object GradeColors {
         else -> R.color.grade_bad             // красный
     }
 
+    /** Цвет стрелки тренда: рост зелёный, падение красный. */
+    fun forTrend(context: Context, direction: TrendDirection): Int = ContextCompat.getColor(
+        context,
+        if (direction == TrendDirection.DOWN) R.color.grade_bad else R.color.grade_excellent
+    )
+
     /** Цвет по оценке или среднему баллу для текущей темы (поэтому нужен Context). */
     fun forScore(context: Context, score: Double): Int =
         ContextCompat.getColor(context, colorRes(score))
