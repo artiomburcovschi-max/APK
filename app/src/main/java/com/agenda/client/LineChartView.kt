@@ -9,10 +9,7 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import kotlin.math.floor
 
-/**
- * Простой линейный график, нарисованный вручную (без сторонних библиотек).
- * Точки стоят через равные промежутки в порядке оценок (по датам), а не по календарю.
- */
+
 class LineChartView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null

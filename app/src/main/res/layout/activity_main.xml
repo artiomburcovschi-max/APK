@@ -5,6 +5,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
     <LinearLayout
         android:id="@+id/contentRoot"
         android:layout_width="match_parent"
@@ -56,13 +60,17 @@
             android:layout_weight="1"
             android:background="@color/wyg_background" />
 
-        <!-- WebView-->
+    </LinearLayout>
+
+        <!-- Скрытый движок. Размер НЕ нулевой: при 0x0 календарь портала (FullCalendar) не рисует уроки, и «Дневник»
+             оставался пустым. 1280dp: портал видит ширину обычного компьютера, как в Chrome, где разбор проверялся.
+             invisible: пользователь его не видит и не нажимает, но вёрстка и скрипты работают. -->
         <WebView
             android:id="@+id/webView"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_width="1280dp"
+            android:layout_height="900dp"
             android:visibility="invisible" />
-    </LinearLayout>
+    </FrameLayout>
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navView"

@@ -30,11 +30,21 @@
         android:textSize="14sp" />
 
     <TextView
+        android:id="@+id/tvAccountDosar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:lineSpacingExtra="3dp"
+        android:textColor="@color/wyg_text_body"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:lineSpacingExtra="3dp"
-        android:text="Логин и пароль хранятся на этом телефоне в зашифрованном виде. История оценок тоже хранится только здесь."
+        android:text="Логин и пароль хранятся на этом телефоне в зашифрованном виде. История оценок, дневник, домашние задания и пропуски тоже хранятся только здесь."
         android:textColor="@color/wyg_text_body"
         android:textSize="14sp" />
 
@@ -49,7 +59,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Смена аккаунта стирает логин, пароль и всю историю оценок на этом телефоне."
+        android:text="Смена аккаунта стирает логин, пароль и все сохранённые данные (оценки, дневник, пропуски) на этом телефоне."
         android:textColor="@color/wyg_text_secondary"
         android:textSize="13sp" />
 </LinearLayout>

@@ -14,9 +14,25 @@
             android:icon="@drawable/ic_nav_recent"
             android:title="Новые оценки" />
         <item
+            android:id="@+id/nav_diary"
+            android:icon="@drawable/ic_nav_diary"
+            android:title="Дневник" />
+        <item
+            android:id="@+id/nav_homework"
+            android:icon="@drawable/ic_nav_homework"
+            android:title="Домашка" />
+        <item
+            android:id="@+id/nav_absences"
+            android:icon="@drawable/ic_nav_absences"
+            android:title="Пропуски" />
+        <item
             android:id="@+id/nav_analytics"
             android:icon="@drawable/ic_nav_analytics"
             android:title="Аналитика" />
+        <item
+            android:id="@+id/nav_teacher"
+            android:icon="@drawable/ic_nav_recent"
+            android:title="Учителя" />
         <item
             android:id="@+id/nav_account"
             android:icon="@drawable/ic_nav_account"

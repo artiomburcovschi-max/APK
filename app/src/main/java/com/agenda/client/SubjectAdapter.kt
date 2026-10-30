@@ -15,6 +15,9 @@ import java.util.Locale
 
 class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
 
+    /** Учителя по предметам (ключ: нормализованное название, см. TeacherLookup). Задаётся экраном до submit(). */
+    var teachers: Map<String, List<String>> = emptyMap()
+
     private val items = mutableListOf<SubjectGrades>()
     private val expanded = mutableSetOf<String>() // какие карточки раскрыты (по ключу семестр|предмет)
 
@@ -110,6 +113,11 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
             "$date  —  $score"
         }
         val trend = Trend.describe(Trend.of(item.scores))
-        return if (trend == null) lines.joinToString("\n") else (lines + "" + trend).joinToString("\n")
+        val names = TeacherLookup.forSubject(teachers, item.subject)
+        val head = if (names.isEmpty()) emptyList() else listOf(
+            (if (names.size == 1) "Учитель: " else "Учителя: ") + names.joinToString(", "), ""
+        )
+        val tail = if (trend == null) emptyList() else listOf("", trend)
+        return (head + lines + tail).joinToString("\n")
     }
 }

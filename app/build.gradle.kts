@@ -7,7 +7,7 @@ plugins {
 
 // Переменные версии приложения перед блоком android
 val vMajor = 0
-val vMinor = 6
+val vMinor = 8
 val vPatch = 0
 
 android {

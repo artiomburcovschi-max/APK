@@ -1,8 +1,8 @@
 {
-  "versionCode": 404,
-  "versionName": "0.6.0",
-  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.6.0/WatchYourGrade.apk",
-  "sha256": "ddfdbb34f9c6480bc913285b1cbb8214cd8c969a857bc5a2523108bba74a9131",
-  "sizeBytes": 5416334,
-  "notes": "Добавлена новая функция расчета оценки в разделе Аналитика,вкладка Новые оценки и тренды падения и роста оценок"
+  "versionCode": 800,
+  "versionName": "0.8.0",
+  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.8.0/WatchYourGrade.apk",
+  "sha256": "204ac5895fc22fcfcf5b071d9380f7de42dceb49b6900b3801cc4911814acde2",
+  "sizeBytes": 5465964,
+  "notes": "Добавлены новые разделы такие как Agneda,Учителя,Новые оценки и т.д»"
 }

@@ -32,6 +32,7 @@ class GradesFragment : Fragment(R.layout.fragment_grades) {
         view.findViewById<Button>(R.id.btnProgressHide).setOnClickListener { h.hideProgress() }
 
         fun render() {
+            adapter.teachers = TeacherLookup.bySubject(h.extras.dosar)
             adapter.submit(h.grades)
             tvStatus.text = h.status
 

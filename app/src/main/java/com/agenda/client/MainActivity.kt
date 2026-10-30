@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity(), AppHost {
     private lateinit var webView: WebView
     private lateinit var repo: GradesRepository
     private lateinit var cache: SnapshotCache
+    private lateinit var extrasStore: PortalExtrasStore
     private lateinit var updater: UpdateChecker
     private lateinit var store: CredentialStore
 
@@ -63,6 +64,7 @@ class MainActivity : AppCompatActivity(), AppHost {
     // Состояние для экрана «Оценки». Живёт в Activity, поэтому переживает смену разделов.
     private var gradesState: List<SubjectGrades> = emptyList()
     private var statusState: String = ""
+    private var extrasState: PortalExtras = PortalExtras()  // уроки, ДЗ, учителя, пропуски
     private var progressState: RefreshProgress? = null   // null = обновление не идёт
     private var progressHiddenState = false
     private var stateListener: (() -> Unit)? = null
@@ -74,6 +76,8 @@ class MainActivity : AppCompatActivity(), AppHost {
     override val status: String get() = statusState
     override val username: String get() = usernameIntent
     override val accountType: AccountType get() = accountTypeValue
+    override val extras: PortalExtras get() = extrasState
+
     override fun recentGrades(): List<FeedItem> = repo.recentFeed()
 
     override val updateStatus: UpdateStatus get() = updater.status()
@@ -140,6 +144,8 @@ class MainActivity : AppCompatActivity(), AppHost {
         }
         repo = GradesRepository(this)
         cache = SnapshotCache(this)
+        extrasStore = PortalExtrasStore(this)
+        extrasState = extrasStore.load()
         updater = UpdateChecker(this, client)
         usernameIntent = creds.first
         passwordIntent = creds.second
@@ -237,7 +243,11 @@ class MainActivity : AppCompatActivity(), AppHost {
 
     private fun sectionFor(navId: Int): Fragment = when (navId) {
         R.id.nav_recent -> RecentFragment()
+        R.id.nav_diary -> DiaryFragment()
+        R.id.nav_homework -> HomeworkFragment()
+        R.id.nav_absences -> AbsencesFragment()
         R.id.nav_analytics -> AnalyticsFragment()
+        R.id.nav_teacher -> TeachersFragment()
         R.id.nav_account -> AccountFragment()
         R.id.nav_settings -> SettingsFragment()
         R.id.nav_about -> AboutFragment()
@@ -339,6 +349,64 @@ class MainActivity : AppCompatActivity(), AppHost {
                                 } catch(e) { console.log("DIAG error " + e); }
                             }
 
+                            // Состояние календаря для лога: сколько карточек уроков, размер контейнера и окна.
+                            function calDiag(tag) {
+                                try {
+                                    var c = document.getElementById('orar_calendar_calendar');
+                                    console.log("CAL " + tag + ": карточек=" + document.querySelectorAll('.lesson-card').length
+                                        + " событий=" + document.querySelectorAll('.fc-event').length
+                                        + " дней=" + document.querySelectorAll('.fc-daygrid-day').length
+                                        + " контейнер=" + (c ? c.offsetWidth + 'x' + c.offsetHeight : 'нет')
+                                        + " окно=" + window.innerWidth + 'x' + window.innerHeight
+                                        + " видимость=" + document.visibilityState);
+                                } catch(e) { console.log("CAL diag error " + e); }
+                            }
+
+                            // Листает календарь назад до месяца начала семестра и отдаёт каждый месяц в Android (processMonth).
+                            // На любой неожиданности просто заканчивает: основная страница всё равно будет отправлена.
+                            function pageBack(done) {
+                                var finished = false;
+                                function finish() { if (!finished) { finished = true; done(); } }
+                                try {
+                                    var begin = (document.getElementById('P1_BEGIN_SEMESTER_DATE') || {}).value || '';
+                                    var m = begin.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+                                    var stopKey = m ? (m[3] + '-' + m[2]) : null;
+                                    var steps = 0;
+                                    var MAX_STEPS = 4;
+                                    function monthKey() {
+                                        var c = document.querySelector('.fc-daygrid-day:not(.fc-day-other)');
+                                        var d = c ? c.getAttribute('data-date') : '';
+                                        return d ? d.substring(0, 7) : '';
+                                    }
+                                    function step() {
+                                        var key = monthKey();
+                                        var pb = document.querySelector('.fc-prev-button');
+                                        if (!stopKey || !key || !pb || key <= stopKey || steps >= MAX_STEPS) { finish(); return; }
+                                        steps++;
+                                        pb.click();
+                                        var waited = 0, stable = 0, last = -1;
+                                        var t = setInterval(function() {
+                                            waited++;
+                                            var k = monthKey();
+                                            var n = document.querySelectorAll('.lesson-card').length;
+                                            if (k !== key) { stable = (n === last) ? stable + 1 : 0; last = n; }
+                                            var settled = (k !== key) && ((n > 0 && stable >= 2) || stable >= 4);
+                                            if (settled || waited >= 16) {
+                                                clearInterval(t);
+                                                if (k === key) { console.log("CAL месяц не переключился"); finish(); return; }
+                                                console.log("CAL месяц " + k + ": карточек=" + n);
+                                                try { window.AndroidBridge.processMonth(document.getElementsByTagName('html')[0].innerHTML); } catch(e) { console.log("CAL processMonth error " + e); }
+                                                step();
+                                            }
+                                        }, 500);
+                                    }
+                                    step();
+                                } catch(e) {
+                                    console.log("CAL pageBack error " + e);
+                                    finish();
+                                }
+                            }
+
                             let attempts = 0;
                             let timer = setInterval(function() {
                                 attempts++;
@@ -347,16 +415,44 @@ class MainActivity : AppCompatActivity(), AppHost {
                                 var evalList = document.getElementById('P1_LAST_3_EVAL_LIST');
                                 if (evalList && evalList.value) {
                                     var hasTable = !!document.getElementById('report_table_sem1');
-                                    if (hasTable || window._tableWait >= 8) {
+                                    // Календарь «Agenda» рисуется отдельно от таблицы оценок и иногда позже неё. Ждём его до 10 секунд
+                                    // (раньше было 3: дневник оставался пустым). Если не появляется, один раз «встряхиваем» его:
+                                    // событие resize и пролистывание месяца вперёд-назад заставляют FullCalendar перерисоваться.
+                                    var calReady = document.querySelectorAll('.lesson-card').length > 0;
+                                    if (hasTable && !calReady) {
+                                        window._calWait = (window._calWait || 0) + 1;
+                                        if (window._calWait === 3) {
+                                            calDiag('ждём');
+                                            try { window.dispatchEvent(new Event('resize')); } catch(e) {}
+                                        }
+                                        if (window._calWait === 6) {
+                                            try {
+                                                var nb = document.querySelector('.fc-next-button');
+                                                var pb = document.querySelector('.fc-prev-button');
+                                                if (nb && pb) {
+                                                    console.log("CAL встряхиваем: месяц вперёд и назад");
+                                                    nb.click();
+                                                    setTimeout(function() { pb.click(); }, 800);
+                                                }
+                                            } catch(e) { console.log("CAL nudge error " + e); }
+                                        }
+                                    }
+                                    if ((hasTable && (calReady || window._calWait >= 10)) || window._tableWait >= 16) {
                                         if (!hasTable) diag();
+                                        calDiag('итог');
                                         console.log("Передаем страницу в Android, таблица есть: " + hasTable);
-                                        window.AndroidBridge.processHTML(document.getElementsByTagName('html')[0].innerHTML);
+                                        // Страница текущего месяца: её разбирает основной обработчик. Забираем HTML сейчас,
+                                        // пока календарь стоит на текущем месяце, потом листаем назад за прошлыми месяцами.
+                                        var mainHtml = document.getElementsByTagName('html')[0].innerHTML;
                                         clearInterval(timer);
+                                        pageBack(function() {
+                                            window.AndroidBridge.processHTML(mainHtml);
+                                        });
                                         return;
                                     }
                                     window._tableWait++;
                                     prog('WAITING_TABLE', window._tableWait);
-                                    if (window._tableWait === 3) {
+                                    if (window._tableWait === 3 && !hasTable) {
                                         try {
                                             apex.region('sem1').refresh();
                                             console.log("Вызвали apex.region('sem1').refresh()");
@@ -454,6 +550,7 @@ class MainActivity : AppCompatActivity(), AppHost {
         cache.clear()                                       // сохранённый список оценок
         try { repo.clearAll() } catch (e: Exception) { Log.e(TAG, "Не удалось стереть историю: ${e.message}") }
         GoalStore(this).clearAll()                          // цели по предметам
+        extrasStore.clear()                                 // уроки, ДЗ, учителя и пропуски
         CookieManager.getInstance().removeAllCookies(null)  // сессия портала
         WebStorage.getInstance().deleteAllData()            // данные страниц портала
         webView.clearCache(true)
@@ -496,13 +593,9 @@ class MainActivity : AppCompatActivity(), AppHost {
         webView.loadUrl("https://agenda.sime.md/")
     }
 
-    /** Строка статуса на время загрузки, например «Загрузка… 40%». */
+
     private fun loadingStatus(p: RefreshProgress): String = "Загрузка… ${p.percent}%"
 
-    /**
-     * Продвигает полоску. Только из главного потока. Если обновление уже закончилось (progressState == null),
-     * запоздалый сигнал игнорируется, иначе конец загрузки «оживал» бы заново.
-     */
     private fun advanceProgress(stage: RefreshStage, sub: Int = 0) {
         val current = progressState ?: return
         val next = RefreshProgress.advance(current, stage, sub)
@@ -515,7 +608,7 @@ class MainActivity : AppCompatActivity(), AppHost {
         SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(Date(millis))
 
     inner class WebAppInterface {
-        /** Сигнал от JS-автомата: этап входа и сколько секунд он уже длится. Неизвестный этап игнорируем. */
+
         @JavascriptInterface
         fun onProgress(stage: String, sub: Int) {
             val parsed = RefreshStage.fromName(stage) ?: return
@@ -533,11 +626,40 @@ class MainActivity : AppCompatActivity(), AppHost {
             }
         }
 
+        /**
+         * Прошлый месяц календаря (скрипт листает «назад» до начала семестра). Берём только уроки и осторожно
+         * склеиваем их с сохранёнными: ДЗ, досье и пропуски не трогаем, их разберёт основная страница (processHTML).
+         */
+        @JavascriptInterface
+        fun processMonth(html: String) {
+            try {
+                val lessons = AgendaParser.parseLessons(html)
+                val old = extrasStore.load()
+                val merged = old.copy(
+                    lessons = PortalMerge.mergeLessons(old.lessons, lessons),
+                    updatedAt = System.currentTimeMillis()
+                )
+                extrasStore.save(merged)
+                Log.d(TAG, "Прошлый месяц: уроков ${lessons.size}, всего в памяти уроков ${merged.lessons.size}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Прошлый месяц не разобрался: ${e.message}")
+            }
+        }
+
         @JavascriptInterface
         fun processHTML(html: String) {
             Log.d(TAG, "HTML успешно получен в Kotlin. Размер: ${html.length} символов")
 
             runOnUiThread { advanceProgress(RefreshStage.READING) }
+
+
+            val extras = try {
+                updateExtras(html)
+            } catch (e: Exception) {
+                Log.e(TAG, "Дополнительные данные страницы не разобрались: ${e.message}")
+                null
+            }
+            if (extras != null) runOnUiThread { extrasState = extras }
 
             // 1. Чистая логика: HTML -> список предметов (без Android-зависимостей)
             val result = GradesParser.parse(html)
@@ -555,11 +677,11 @@ class MainActivity : AppCompatActivity(), AppHost {
                 return
             }
 
-            // 3. Локальная история: сравниваем со снимком в базе, записываем разницу и проставляем даты.
-            //    recent = блок "Note recente" с настоящими датами оценок.
+
             runOnUiThread { advanceProgress(RefreshStage.SAVING) }
-            val recent = RecentEvalParser.parse(html)
-            Log.d(TAG, "Свежих оценок с датами на странице: ${recent.size}")
+            // Даты оценок: теперь из календаря (все оценки с точными датами)
+            val recent = LessonDates.mergeRecent(extras?.lessons.orEmpty(), RecentEvalParser.parse(html))
+            Log.d(TAG, "Оценок с датами для привязки: ${recent.size}")
             val report = try {
                 repo.sync(result, recent)
             } catch (e: Exception) {
@@ -594,7 +716,32 @@ class MainActivity : AppCompatActivity(), AppHost {
         }
     }
 
-    /** Короткое описание изменений для строки статуса. */
+    private fun updateExtras(html: String): PortalExtras {
+        fun <T> safe(name: String, block: () -> T): T? = try {
+            block()
+        } catch (e: Exception) {
+            Log.e(TAG, "Разбор «$name» не удался: ${e.message}")
+            null
+        }
+
+        val parsed = ParsedPortal(
+            lessons = safe("уроки") { AgendaParser.parseLessons(html) }.orEmpty(),
+            homework = safe("ДЗ") { AgendaParser.parseHomework(html) }.orEmpty(),
+            dosar = safe("досье") { DosarParser.parse(html) },
+            absences = safe("пропуски") { AbsenceParser.parse(html) }
+        )
+        val merged = PortalMerge.merge(extrasStore.load(), parsed, System.currentTimeMillis())
+        extrasStore.save(merged)
+        Log.d(
+            TAG,
+            "Страница: уроков ${parsed.lessons.size}, ДЗ ${parsed.homework.size}, " +
+                "учителей ${parsed.dosar?.teachers?.size ?: 0}, пропусков ${parsed.absences?.entries?.size ?: 0}; " +
+                "всего в памяти уроков ${merged.lessons.size}"
+        )
+        return merged
+    }
+
+
     private fun describeChanges(changes: List<GradeChange>): String {
         val added = changes.filter { it.type == ChangeType.ADDED }
         val modified = changes.count { it.type == ChangeType.MODIFIED }

@@ -10,11 +10,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/**
- * Хранит логин и пароль на устройстве.
- * Ключ AES-256 живёт в Android Keystore (из него нельзя вытащить сам ключ),
- * в SharedPreferences лежит только зашифрованный текст (AES-GCM).
- */
+
 class CredentialStore(context: Context) {
 
     private val prefs = context.applicationContext
