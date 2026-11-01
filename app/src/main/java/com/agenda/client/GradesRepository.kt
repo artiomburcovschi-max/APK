@@ -8,8 +8,8 @@ import android.database.sqlite.SQLiteOpenHelper
  * База grades.db. Одна строка = одна оценка. Её "адрес": (семестр, предмет, место в списке).
  * Версия 2 добавила колонку grade_date (дата оценки).
  */
-class GradesDbHelper(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "grades.db", null, 2) {
+class GradesDbHelper(context: Context, profile: String = "") :
+    SQLiteOpenHelper(context.applicationContext, if (profile.isEmpty()) "grades.db" else "grades_$profile.db", null, 2) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -53,9 +53,9 @@ data class SyncReport(
  * Тонкая "оболочка" вокруг базы: чтение и запись.
  * Вся логика сравнения лежит в GradesDiff, а привязки дат в GradeDates.
  */
-class GradesRepository(context: Context) {
+class GradesRepository(context: Context, profile: String = "") {
 
-    private val helper = GradesDbHelper(context)
+    private val helper = GradesDbHelper(context, profile)
 
     /**
      * Сравнивает свежие оценки со снимком в базе, записывает разницу и проставляет даты.

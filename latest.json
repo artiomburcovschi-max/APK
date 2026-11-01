@@ -1,8 +1,8 @@
 {
-  "versionCode": 800,
-  "versionName": "0.8.0",
-  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.8.0/WatchYourGrade.apk",
-  "sha256": "204ac5895fc22fcfcf5b071d9380f7de42dceb49b6900b3801cc4911814acde2",
-  "sizeBytes": 5465964,
-  "notes": "Добавлены новые разделы такие как Agneda,Учителя,Новые оценки и т.д»"
+  "versionCode": 801,
+  "versionName": "0.8.1",
+  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.8.1/WatchYourGrade.apk",
+  "sha256": "ef7ae5fddbe103e3330b2fdb25fd6eb7887eb2939ed7d6be3195f8dafc5f87b1",
+  "sizeBytes": 5471396,
+  "notes": "Добавлена возможность видеть несолько учеников»"
 }

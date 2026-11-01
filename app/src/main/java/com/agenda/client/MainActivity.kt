@@ -4,6 +4,9 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.content.ContextCompat
+import android.graphics.drawable.GradientDrawable
+import android.graphics.Typeface
 import android.util.Log
 import android.view.View
 import android.webkit.ConsoleMessage
@@ -53,6 +56,7 @@ class MainActivity : AppCompatActivity(), AppHost {
     private lateinit var extrasStore: PortalExtrasStore
     private lateinit var updater: UpdateChecker
     private lateinit var store: CredentialStore
+    private lateinit var childStore: ChildStore
 
     private var usernameIntent: String = ""
     private var passwordIntent: String = ""
@@ -142,9 +146,12 @@ class MainActivity : AppCompatActivity(), AppHost {
             finish()
             return
         }
-        repo = GradesRepository(this)
-        cache = SnapshotCache(this)
-        extrasStore = PortalExtrasStore(this)
+        // Данные каждого ребёнка лежат в своих файлах: открываем хранилища выбранного ребёнка
+        childStore = ChildStore(this)
+        val profile = childStore.profileKey()
+        repo = GradesRepository(this, profile)
+        cache = SnapshotCache(this, profile)
+        extrasStore = PortalExtrasStore(this, profile)
         extrasState = extrasStore.load()
         updater = UpdateChecker(this, client)
         usernameIntent = creds.first
@@ -160,6 +167,7 @@ class MainActivity : AppCompatActivity(), AppHost {
         setupWindowInsets()
         setupWebView()
         setupNavigation(savedInstanceState)
+        setupChildTabs()
 
         // Сначала показываем сохранённое: экран не пустой, портал пока не трогаем
         val cached = cache.load()
@@ -196,6 +204,61 @@ class MainActivity : AppCompatActivity(), AppHost {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(KEY_NAV, currentNavId)
+    }
+
+    // ---- вкладки детей ----
+    /** Вкладки видны, только если в аккаунте два ребёнка и больше. Нажатие открывает данные другого ребёнка. */
+    private fun setupChildTabs() {
+        val scroll = findViewById<View>(R.id.childTabsScroll)
+        val row = findViewById<LinearLayout>(R.id.childTabs)
+        val kids = childStore.children()
+        row.removeAllViews()
+        if (kids.size < 2) {
+            scroll.visibility = View.GONE
+            return
+        }
+        scroll.visibility = View.VISIBLE
+        val active = childStore.targetId()
+        val dp = resources.displayMetrics.density
+        val ink = ContextCompat.getColor(this, R.color.wyg_text_primary)
+        val paper = ContextCompat.getColor(this, R.color.wyg_surface)
+        for (kid in kids) {
+            val selected = kid.id == active
+            val tab = TextView(this)
+            tab.text = shortChildName(kid.name)
+            tab.textSize = 14f
+            tab.setTypeface(tab.typeface, if (selected) Typeface.BOLD else Typeface.NORMAL)
+            tab.setTextColor(if (selected) paper else ink)
+            tab.setPadding((16 * dp).toInt(), (8 * dp).toInt(), (16 * dp).toInt(), (8 * dp).toInt())
+            val bg = GradientDrawable()
+            bg.cornerRadius = 20 * dp
+            bg.setColor(if (selected) ink else paper)
+            bg.setStroke((1 * dp).toInt(), ink)
+            tab.background = bg
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.marginEnd = (8 * dp).toInt()
+            tab.layoutParams = lp
+            tab.setOnClickListener {
+                if (kid.id != active) {
+                    childStore.activeId = kid.id
+                    recreate() // заново откроет экран с данными этого ребёнка и обновит их с портала
+                }
+            }
+            row.addView(tab)
+        }
+    }
+
+    /** "BURCOVSCHI ARTIOM" в портале это "ФАМИЛИЯ ИМЯ": показываем "Artiom B." */
+    private fun shortChildName(full: String): String {
+        fun cap(w: String) = w.lowercase().replaceFirstChar { it.uppercase() }
+        val parts = full.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        return when {
+            parts.isEmpty() -> "?"
+            parts.size == 1 -> cap(parts[0])
+            else -> parts.drop(1).joinToString(" ") { cap(it) } + " " + parts[0].first().uppercase() + "."
+        }
     }
 
     // ---- оболочка: шторка, отступы, кнопка «назад» ----
@@ -325,6 +388,8 @@ class MainActivity : AppCompatActivity(), AppHost {
                     val passJs = JSONObject.quote(passwordIntent)
                     // какую кнопку нажимать на стартовой странице: "Părinte" или "Elev"
                     val roleJs = JSONObject.quote(accountTypeValue.portalAlt)
+                    // какого ребёнка открыть (id из меню портала); пусто = тот, кого портал откроет сам
+                    val childJs = JSONObject.quote(childStore.targetId())
 
                     val jsAutomationCode = """
                         (function() {
@@ -414,6 +479,40 @@ class MainActivity : AppCompatActivity(), AppHost {
                                 // Шаг 1: после успешного входа появляется блок с оценками
                                 var evalList = document.getElementById('P1_LAST_3_EVAL_LIST');
                                 if (evalList && evalList.value) {
+                                    // Несколько детей в аккаунте: если открыт не тот, кого выбрали вкладкой, переходим по его ссылке из меню
+                                    if (!window._childChecked) {
+                                        window._childChecked = true;
+                                        try {
+                                            var kidLinks = document.querySelectorAll('#t_TreeNav a.a-TreeView-label');
+                                            var kidCur = document.querySelector('#t_TreeNav a.a-TreeView-label.is-current');
+                                            var kidId = function(a) {
+                                                var mm = (a.getAttribute('href') || '').match(/user_eleve_id=([A-Za-z0-9]+)/);
+                                                return mm ? mm[1] : '';
+                                            };
+                                            var wantKid = $childJs;
+                                            var curKid = kidCur ? kidId(kidCur) : '';
+                                            console.log("CHILDREN: ссылок=" + kidLinks.length + " текущий=" + curKid + " нужный=" + wantKid);
+                                            if (wantKid && curKid && curKid !== wantKid) {
+                                                var already = false;
+                                                try { already = sessionStorage.getItem('wyg_switched') === wantKid; } catch(e) {}
+                                                if (!already) {
+                                                    for (var ki = 0; ki < kidLinks.length; ki++) {
+                                                        if (kidId(kidLinks[ki]) === wantKid) {
+                                                            try { sessionStorage.setItem('wyg_switched', wantKid); } catch(e) {}
+                                                            console.log("CHILDREN: переключаемся на " + wantKid);
+                                                            clearInterval(timer);
+                                                            window.location.href = kidLinks[ki].href;
+                                                            return;
+                                                        }
+                                                    }
+                                                    console.log("CHILDREN: ссылка на нужного ребёнка не найдена");
+                                                }
+                                                window._childMismatch = true;
+                                            } else {
+                                                try { sessionStorage.removeItem('wyg_switched'); } catch(e) {}
+                                            }
+                                        } catch(e) { console.log("CHILDREN error " + e); }
+                                    }
                                     var hasTable = !!document.getElementById('report_table_sem1');
                                     // Календарь «Agenda» рисуется отдельно от таблицы оценок и иногда позже неё. Ждём его до 10 секунд
                                     // (раньше было 3: дневник оставался пустым). Если не появляется, один раз «встряхиваем» его:
@@ -445,9 +544,14 @@ class MainActivity : AppCompatActivity(), AppHost {
                                         // пока календарь стоит на текущем месяце, потом листаем назад за прошлыми месяцами.
                                         var mainHtml = document.getElementsByTagName('html')[0].innerHTML;
                                         clearInterval(timer);
-                                        pageBack(function() {
+                                        if (window._childMismatch) {
+                                            // открыт не тот ребёнок: прошлые месяцы не листаем, Android сам решит, что с этим делать
                                             window.AndroidBridge.processHTML(mainHtml);
-                                        });
+                                        } else {
+                                            pageBack(function() {
+                                                window.AndroidBridge.processHTML(mainHtml);
+                                            });
+                                        }
                                         return;
                                     }
                                     window._tableWait++;
@@ -551,12 +655,29 @@ class MainActivity : AppCompatActivity(), AppHost {
         try { repo.clearAll() } catch (e: Exception) { Log.e(TAG, "Не удалось стереть историю: ${e.message}") }
         GoalStore(this).clearAll()                          // цели по предметам
         extrasStore.clear()                                 // уроки, ДЗ, учителя и пропуски
+        wipeAllChildProfiles()                              // то же самое у остальных детей аккаунта
         CookieManager.getInstance().removeAllCookies(null)  // сессия портала
         WebStorage.getInstance().deleteAllData()            // данные страниц портала
         webView.clearCache(true)
         webView.clearHistory()
         startActivity(Intent(this, LoginActivity::class.java))
         finish()
+    }
+
+    /** Стирает данные всех детей (у каждого свои файлы), потом и сам список детей. */
+    private fun wipeAllChildProfiles() {
+        val keys = (listOf("") + childStore.children().map { childStore.keyFor(it.id) }).distinct()
+        for (key in keys) {
+            try {
+                PortalExtrasStore(this, key).clear()
+                SnapshotCache(this, key).clear()
+                GradesRepository(this, key).clearAll()
+                GoalStore(this, key).clearAll()
+            } catch (e: Exception) {
+                Log.e(TAG, "Не удалось стереть данные ребёнка '$key': ${e.message}")
+            }
+        }
+        childStore.clearAll()
     }
 
     private fun showUpdateBanner() {
@@ -652,6 +773,26 @@ class MainActivity : AppCompatActivity(), AppHost {
 
             runOnUiThread { advanceProgress(RefreshStage.READING) }
 
+            // Какой ребёнок открыт на странице. Данные пишем только если это тот, кого выбрали вкладкой
+            val kids = try { ChildrenParser.parse(html) } catch (e: Exception) { null }
+            if (kids != null && kids.currentId.isNotEmpty()) {
+                childStore.saveChildren(kids.children)
+                val want = childStore.targetId()
+                if (want.isEmpty()) {
+                    childStore.adoptFirstChild(kids.currentId) // первый вход: запоминаем, чьи это данные
+                } else if (want != kids.currentId) {
+                    Log.w(TAG, "Портал открыл другого ребёнка (${kids.currentId}), нужен $want: данные не сохраняем")
+                    runOnUiThread {
+                        setupChildTabs()
+                        progressState = null
+                        statusState = "Портал открыл другого ребёнка. Нажми «Обновить» ещё раз"
+                        publishState()
+                    }
+                    return
+                }
+                Log.d(TAG, "Ребёнок ${kids.currentId}, всего в аккаунте: ${kids.children.size}")
+                runOnUiThread { setupChildTabs() }
+            }
 
             val extras = try {
                 updateExtras(html)

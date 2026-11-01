@@ -1,0 +1,35 @@
+[33mf317a0b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: commit: Добавленны новые функции и вкладки (дневник,учителя и т.п)
+[33mb0597f5[m[33m ([m[1;33mtag: [m[1;33mv0.6.0[m[33m)[m HEAD@{1}: commit: Добавлена новая функция расчета оценки в разделе Аналитика,вкладка Новые оценки и тренды падения и роста оценок
+[33md86ed77[m[33m ([m[1;33mtag: [m[1;33mv0.5.1[m[33m)[m HEAD@{2}: commit: Исправил систему обновлений и обновил раздел о приложении
+[33m3404f60[m HEAD@{3}: commit: Add final latest.json for version 0.5.0
+[33mdcf0bbc[m[33m ([m[1;33mtag: [m[1;33mv0.5.0[m[33m)[m HEAD@{4}: commit: Добавил средние баллы за предметы в разделе аналитика/цели,там же добавил цель на средний бал за семестр/год.Добавлен что то типо сстатус бара загрузки данных(процесс парсинга) на главном экране
+[33m3312ec0[m[33m ([m[1;33mtag: [m[1;33mv0.4.1[m[33m)[m HEAD@{5}: commit: Version 0.4.1: updated icon and name
+[33m9aaff88[m HEAD@{6}: pull origin main --rebase (finish): returning to refs/heads/main
+[33m9aaff88[m HEAD@{7}: pull origin main --rebase (pick): version 0.4.0
+[33m743911b[m HEAD@{8}: pull origin main --rebase (pick): Добавлена логика расчета целей и теманая тема
+[33m7d9549a[m HEAD@{9}: pull origin main --rebase (start): checkout 7d9549a01df7dcb1821849e90f089cf9888ddb43
+[33mee9c4b1[m HEAD@{10}: commit: version 0.4.0
+[33me047551[m[33m ([m[1;33mtag: [m[1;33mv0.4.0[m[33m, [m[1;32mfeature/analytics[m[33m)[m HEAD@{11}: merge feature/analytics: Fast-forward
+[33mc2cb235[m[33m ([m[1;33mtag: [m[1;33mv0.3.0[m[33m)[m HEAD@{12}: checkout: moving from feature/analytics to main
+[33me047551[m[33m ([m[1;33mtag: [m[1;33mv0.4.0[m[33m, [m[1;32mfeature/analytics[m[33m)[m HEAD@{13}: commit: Добавлена логика расчета целей и теманая тема
+[33mc2cb235[m[33m ([m[1;33mtag: [m[1;33mv0.3.0[m[33m)[m HEAD@{14}: checkout: moving from main to feature/analytics
+[33mc2cb235[m[33m ([m[1;33mtag: [m[1;33mv0.3.0[m[33m)[m HEAD@{15}: commit: Version 0.3.0
+[33m1daecbe[m HEAD@{16}: checkout: moving from main to main
+[33m1daecbe[m HEAD@{17}: commit: deleted networ_config
+[33me94c788[m[33m ([m[1;32mfeature/student[m[33m)[m HEAD@{18}: merge feature/student: Fast-forward
+[33ma7a88bc[m[33m ([m[1;32mfeature/navigation[m[33m, [m[1;32mfeature/cache[m[33m)[m HEAD@{19}: checkout: moving from feature/student to main
+[33me94c788[m[33m ([m[1;32mfeature/student[m[33m)[m HEAD@{20}: commit: Added way to login as a student
+[33ma7a88bc[m[33m ([m[1;32mfeature/navigation[m[33m, [m[1;32mfeature/cache[m[33m)[m HEAD@{21}: checkout: moving from feature/navigation to feature/student
+[33ma7a88bc[m[33m ([m[1;32mfeature/navigation[m[33m, [m[1;32mfeature/cache[m[33m)[m HEAD@{22}: checkout: moving from main to feature/navigation
+[33ma7a88bc[m[33m ([m[1;32mfeature/navigation[m[33m, [m[1;32mfeature/cache[m[33m)[m HEAD@{23}: checkout: moving from main to main
+[33ma7a88bc[m[33m ([m[1;32mfeature/navigation[m[33m, [m[1;32mfeature/cache[m[33m)[m HEAD@{24}: merge feature/cache: Fast-forward
+[33m343fc82[m HEAD@{25}: checkout: moving from feature/cache to main
+[33ma7a88bc[m[33m ([m[1;32mfeature/navigation[m[33m, [m[1;32mfeature/cache[m[33m)[m HEAD@{26}: checkout: moving from main to feature/cache
+[33m343fc82[m HEAD@{27}: checkout: moving from feature/cache to main
+[33ma7a88bc[m[33m ([m[1;32mfeature/navigation[m[33m, [m[1;32mfeature/cache[m[33m)[m HEAD@{28}: commit: Refactord some files
+[33m13d2220[m[33m ([m[1;31morigin/refactor/parser[m[33m, [m[1;32mrefactor/parser[m[33m)[m HEAD@{29}: checkout: moving from refactor/parser to feature/cache
+[33m13d2220[m[33m ([m[1;31morigin/refactor/parser[m[33m, [m[1;32mrefactor/parser[m[33m)[m HEAD@{30}: commit: Вынос чистой логики парсинга в GradesParser и покрытие тестами
+[33m343fc82[m HEAD@{31}: checkout: moving from main to refactor/parser
+[33m343fc82[m HEAD@{32}: Branch: renamed refs/heads/main to refs/heads/main
+[33m343fc82[m HEAD@{34}: Branch: renamed refs/heads/master to refs/heads/main
+[33m343fc82[m HEAD@{36}: commit (initial): Рабочая версия: логин, парсинг, список, хранение пароля

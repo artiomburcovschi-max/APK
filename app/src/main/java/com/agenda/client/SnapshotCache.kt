@@ -8,10 +8,10 @@ import org.json.JSONObject
  * Кэш последнего удачного результата: список предметов (вместе с датами оценок) для мгновенного
  * показа при открытии приложения, плюс время последней успешной загрузки и последней попытки.
  */
-class SnapshotCache(context: Context) {
+class SnapshotCache(context: Context, profile: String = "") {
 
     private val prefs = context.applicationContext
-        .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getSharedPreferences(if (profile.isEmpty()) PREFS_NAME else PREFS_NAME + "_" + profile, Context.MODE_PRIVATE)
 
     /** Время последней ПОПЫТКИ зайти на портал (для RefreshPolicy). */
     var lastAttemptAt: Long

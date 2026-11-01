@@ -32,8 +32,9 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
     private lateinit var goalTab: GoalTab
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        items = SnapshotCache(requireContext()).load()
-        goalTab = GoalTab(view, GoalStore(requireContext()))
+        val profile = ChildStore(requireContext()).profileKey() // данные выбранного ребёнка
+        items = SnapshotCache(requireContext(), profile).load()
+        goalTab = GoalTab(view, GoalStore(requireContext(), profile))
         setupTabs(view, savedInstanceState?.getInt(KEY_TAB) ?: 0)
         // семестры, в которых есть хотя бы одна оценка; по умолчанию показываем самый свежий
         semesters = items.filter { it.scores.isNotEmpty() }.map { it.semester }.distinct()

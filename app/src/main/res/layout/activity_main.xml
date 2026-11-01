@@ -26,6 +26,25 @@
             app:navigationIconTint="@color/wyg_text_primary"
             app:titleTextColor="@color/wyg_text_primary" />
 
+        <!-- Вкладки детей: видны только если в аккаунте два ребёнка и больше -->
+        <HorizontalScrollView
+            android:id="@+id/childTabsScroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/childTabs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="8dp" />
+        </HorizontalScrollView>
+
         <LinearLayout
             android:id="@+id/updateBanner"
             android:layout_width="match_parent"

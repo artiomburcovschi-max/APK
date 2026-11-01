@@ -9,9 +9,10 @@ import java.io.File
  * Файл не попадает в облачную копию Android (см. backup_rules) и стирается при смене аккаунта.
  * Запись через временный файл: если телефон выключится посреди записи, прежний файл останется целым.
  */
-class PortalExtrasStore(context: Context) {
+class PortalExtrasStore(context: Context, profile: String = "") {
 
-    private val file = File(context.filesDir, "extras.json")
+    // у ребёнка без суффикса прежнее имя файла: старые данные не теряются
+    private val file = File(context.filesDir, if (profile.isEmpty()) "extras.json" else "extras_$profile.json")
 
     @Synchronized
     fun load(): PortalExtras {
@@ -27,7 +28,7 @@ class PortalExtrasStore(context: Context) {
     @Synchronized
     fun save(extras: PortalExtras) {
         try {
-            val tmp = File(file.parentFile, "extras.json.tmp")
+            val tmp = File(file.parentFile, file.name + ".tmp")
             tmp.writeText(PortalJson.toJson(extras), Charsets.UTF_8)
             if (!tmp.renameTo(file)) { // на редких файловых системах rename поверх существующего не проходит
                 file.delete()
@@ -41,6 +42,6 @@ class PortalExtrasStore(context: Context) {
     @Synchronized
     fun clear() {
         file.delete()
-        File(file.parentFile, "extras.json.tmp").delete()
+        File(file.parentFile, file.name + ".tmp").delete()
     }
 }

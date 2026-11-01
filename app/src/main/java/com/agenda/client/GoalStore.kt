@@ -8,8 +8,8 @@ import android.content.Context
  * Значение хранится строкой, чтобы 8.5 не превратилось в 8.5000001 при переводе через Float.
  * «Сменить аккаунт» стирает цели вместе с остальными данными (clearAll).
  */
-class GoalStore(context: Context) {
-    private val prefs = context.getSharedPreferences("goals", Context.MODE_PRIVATE)
+class GoalStore(context: Context, profile: String = "") {
+    private val prefs = context.getSharedPreferences(if (profile.isEmpty()) "goals" else "goals_$profile", Context.MODE_PRIVATE)
 
     fun get(semester: String, subject: String): Double? =
         prefs.getString(key(semester, subject), null)?.toDoubleOrNull()
