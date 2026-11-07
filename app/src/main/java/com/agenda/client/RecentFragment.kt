@@ -35,7 +35,7 @@ class RecentFragment : Fragment(R.layout.fragment_recent) {
                 val row = inflater.inflate(R.layout.item_recent, container, false)
                 row.findViewById<TextView>(R.id.tvRecentScore).apply {
                     text = item.score.toString()
-                    setTextColor(GradeColors.forScore(context, item.score.toDouble()))
+                    UiStyle.tintPill(this, GradeColors.forScore(context, item.score.toDouble()))
                 }
                 row.findViewById<TextView>(R.id.tvRecentSubject).text = item.subject
                 row.findViewById<TextView>(R.id.tvRecentWhen).text = RecentFeed.subtitle(item)

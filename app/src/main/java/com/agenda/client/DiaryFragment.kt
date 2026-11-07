@@ -71,17 +71,16 @@ class DiaryFragment : Fragment(R.layout.fragment_diary) {
                     text = lesson.teacher
                     visibility = if (lesson.teacher.isEmpty()) View.GONE else View.VISIBLE
                 }
-                row.findViewById<TextView>(R.id.tvLessonHomework).apply {
-                    text = "ДЗ: " + lesson.homework
-                    visibility = if (lesson.homework.isEmpty()) View.GONE else View.VISIBLE
-                }
+                row.findViewById<TextView>(R.id.tvLessonHomework).text = lesson.homework
+                row.findViewById<View>(R.id.lessonHwBox).visibility =
+                    if (lesson.homework.isEmpty()) View.GONE else View.VISIBLE
                 row.findViewById<TextView>(R.id.tvLessonGrade).apply {
                     if (lesson.grades.isEmpty()) {
                         visibility = View.GONE
                     } else {
                         visibility = View.VISIBLE
                         text = lesson.grades.joinToString(" ")
-                        setTextColor(GradeColors.forScore(context, lesson.grades.average()))
+                        UiStyle.tintPill(this, GradeColors.forScore(context, lesson.grades.average()))
                     }
                 }
                 container.addView(row)

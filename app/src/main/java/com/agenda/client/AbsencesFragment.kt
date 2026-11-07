@@ -66,6 +66,8 @@ class AbsencesFragment : Fragment(R.layout.fragment_absences) {
             val inflater = LayoutInflater.from(requireContext())
 
             subjectsTitle.visibility = if (screen.subjects.isEmpty()) View.GONE else View.VISIBLE
+            // самая длинная полоска это предмет с наибольшим числом пропусков, остальные в той же шкале
+            val maxTotal = screen.subjects.maxOfOrNull { it.semester1.total + it.semester2.total }?.coerceAtLeast(1) ?: 1
             for (item in screen.subjects) {
                 val total = item.semester1.total + item.semester2.total
                 val motivated = item.semester1.motivated + item.semester2.motivated
@@ -73,26 +75,30 @@ class AbsencesFragment : Fragment(R.layout.fragment_absences) {
                 row.findViewById<TextView>(R.id.tvAbsSubject).text = item.subject
                 row.findViewById<TextView>(R.id.tvAbsCount).text =
                     if (motivated > 0) "$total · мотив. $motivated" else total.toString()
+                val track = row.findViewById<LinearLayout>(R.id.absBarTrack)
+                val fill = row.findViewById<View>(R.id.absBarFill)
+                track.weightSum = maxTotal.toFloat()
+                val fillParams = fill.layoutParams as LinearLayout.LayoutParams
+                fillParams.weight = total.toFloat()
+                fill.layoutParams = fillParams
                 subjects.addView(row)
             }
 
             daysTitle.visibility = if (screen.days.isEmpty()) View.GONE else View.VISIBLE
             for (day in screen.days) {
-                days.addView(
-                    (inflater.inflate(R.layout.item_hw_header, days, false) as TextView).apply {
-                        text = day.title
-                        textSize = 14f
-                        setTextColor(ContextCompat.getColor(context, R.color.wyg_text_secondary))
-                        setPadding(0, dp(12), 0, dp(2))
-                    }
-                )
+                // день одной карточкой: дата сверху, пропущенные уроки списком внутри
+                val card = inflater.inflate(R.layout.item_abs_day, days, false)
+                card.findViewById<TextView>(R.id.tvAbsDayTitle).text = day.title
+                val entriesBox = card.findViewById<LinearLayout>(R.id.absDayEntries)
+                days.addView(card)
                 for (entry in day.entries) {
-                    val row = inflater.inflate(R.layout.item_abs_entry, days, false)
+                    val row = inflater.inflate(R.layout.item_abs_entry, entriesBox, false)
                     row.findViewById<TextView>(R.id.tvEntryLesson).text = entry.lessonNo.toString()
                     row.findViewById<TextView>(R.id.tvEntrySubject).text = entry.subject
                     row.findViewById<TextView>(R.id.tvEntryStatus).apply {
                         text = AbsenceScreens.statusLabel(entry.status)
-                        setTextColor(
+                        UiStyle.tintPill(
+                            this,
                             ContextCompat.getColor(
                                 context,
                                 when (entry.status) {
@@ -103,7 +109,7 @@ class AbsencesFragment : Fragment(R.layout.fragment_absences) {
                             )
                         )
                     }
-                    days.addView(row)
+                    entriesBox.addView(row)
                 }
             }
         }

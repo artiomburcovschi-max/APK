@@ -42,9 +42,10 @@ class TeachersFragment : Fragment(R.layout.fragment_teachers) {
             val inflater = LayoutInflater.from(requireContext())
             for ((subject, names) in bySubject) {
                 container.addView(
-                    inflater.inflate(R.layout.item_hw_item, container, false).also {
-                        it.findViewById<TextView>(R.id.tvHwSubject).text = subject
-                        it.findViewById<TextView>(R.id.tvHwText).text = names.joinToString("\n")
+                    inflater.inflate(R.layout.item_teacher, container, false).also {
+                        it.findViewById<TextView>(R.id.tvTeacherAvatar).text = NameInitials.of(names.first())
+                        it.findViewById<TextView>(R.id.tvTeacherSubject).text = subject
+                        it.findViewById<TextView>(R.id.tvTeacherNames).text = names.joinToString("\n")
                     }
                 )
             }

@@ -1,60 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <LinearLayout
+    <!-- Выбор дня: карточка со стрелками -->
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="8dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="8dp">
-
-        <Button
-            android:id="@+id/btnPrevDay"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="56dp"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:text="‹"
-            android:textSize="28sp" />
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp"
+        app:cardBackgroundColor="@color/wyg_surface"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="2dp">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="4dp">
 
-            <TextView
-                android:id="@+id/tvDayTitle"
-                android:layout_width="wrap_content"
+            <Button
+                android:id="@+id/btnPrevDay"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="56dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/wyg_text_primary"
-                android:textSize="17sp"
-                android:textStyle="bold" />
+                android:minWidth="0dp"
+                android:text="‹"
+                android:textSize="28sp" />
 
-            <TextView
-                android:id="@+id/tvDaySummary"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/wyg_text_secondary"
-                android:textSize="13sp" />
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvDayTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/wyg_text_primary"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvDaySummary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/wyg_text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnNextDay"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="56dp"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="›"
+                android:textSize="28sp" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/btnNextDay"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="56dp"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:text="›"
-            android:textSize="28sp" />
-    </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
     <Button
         android:id="@+id/btnToday"
@@ -96,8 +107,8 @@
                 android:id="@+id/tvDiaryNote"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Дневник копит дни по мере обновлений: видно то, что портал показывает на главной (около месяца), и всё, что приложение уже видело раньше."
+                android:layout_marginTop="8dp"
+                android:text="Дневник копит дни по мере обновлений: приложение листает календарь портала назад до начала семестра и запоминает всё, что увидело."
                 android:textColor="@color/wyg_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>

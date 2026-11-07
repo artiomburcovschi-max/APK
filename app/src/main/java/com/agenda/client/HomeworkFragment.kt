@@ -3,6 +3,7 @@ package com.agenda.client
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -37,10 +38,18 @@ class HomeworkFragment : Fragment(R.layout.fragment_homework) {
                     )
                     is HwRow.DateHeader -> container.addView(
                         (inflater.inflate(R.layout.item_hw_header, container, false) as TextView).apply {
+                            // дата «таблеткой»: ряд заданий по дням читается как список
                             text = row.title
-                            textSize = 14f
-                            setTextColor(ContextCompat.getColor(context, R.color.wyg_text_secondary))
-                            setPadding(0, dp(12), 0, 0)
+                            textSize = 13f
+                            setTextColor(ContextCompat.getColor(context, R.color.wyg_accent_text))
+                            setBackgroundResource(R.drawable.bg_chip)
+                            setPadding(dp(12), dp(5), dp(12), dp(5))
+                            layoutParams = LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                            ).apply {
+                                topMargin = dp(14)
+                                bottomMargin = dp(8)
+                            }
                         }
                     )
                     is HwRow.Item -> container.addView(

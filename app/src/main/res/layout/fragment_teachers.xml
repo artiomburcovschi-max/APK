@@ -14,7 +14,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            android:textColor="@color/wyg_text_primary"
+            android:background="@drawable/bg_note"
+            android:lineSpacingExtra="3dp"
+            android:padding="14dp"
+            android:textColor="@color/wyg_accent_text"
             android:textSize="15sp"
             android:textStyle="bold"
             android:visibility="gone" />
