@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Каскад: каждая следующая карточка стартует чуть позже предыдущей -->
+<layoutAnimation xmlns:android="http://schemas.android.com/apk/res/android"
+    android:animation="@anim/item_enter"
+    android:animationOrder="normal"
+    android:delay="14%" />

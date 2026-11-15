@@ -2,6 +2,7 @@ package com.agenda.client
 
 import android.os.Bundle
 import android.view.View
+import android.view.animation.AnimationUtils
 import android.widget.Button
 import android.widget.TextView
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -22,6 +23,10 @@ class GradesFragment : Fragment(R.layout.fragment_grades) {
         val rv = view.findViewById<RecyclerView>(R.id.rvGrades)
         rv.layoutManager = LinearLayoutManager(requireContext())
         rv.adapter = adapter
+        // Каскадное появление карточек: запускаем один раз, когда в списке впервые появились данные
+        // (render() вызывается каждую секунду во время обновления, повторять анимацию нельзя)
+        rv.layoutAnimation = AnimationUtils.loadLayoutAnimation(requireContext(), R.anim.layout_list_enter)
+        var enterPlayed = false
 
         val tvStatus = view.findViewById<TextView>(R.id.tvStatus)
         view.findViewById<Button>(R.id.btnRefresh).setOnClickListener { h.requestRefresh() }
@@ -34,6 +39,10 @@ class GradesFragment : Fragment(R.layout.fragment_grades) {
         fun render() {
             adapter.teachers = TeacherLookup.bySubject(h.extras.dosar)
             adapter.submit(h.grades)
+            if (!enterPlayed && h.grades.isNotEmpty()) {
+                enterPlayed = true
+                rv.scheduleLayoutAnimation()
+            }
             tvStatus.text = h.status
 
             // Панель видна, пока идёт обновление и человек её не скрыл (строка статуса с процентом остаётся всегда)

@@ -1,9 +1,13 @@
 package com.agenda.client
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -30,6 +34,7 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
     private var semesterIndex = 0
     private var tabIndex = 0
     private lateinit var goalTab: GoalTab
+    private var overallAnim: ValueAnimator? = null // счётчик общего среднего: гасим при уходе с экрана
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val profile = ChildStore(requireContext()).profileKey() // данные выбранного ребёнка
@@ -86,6 +91,7 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         val tvInfo = root.findViewById<TextView>(R.id.tvInfo)
         val tvChartHint = root.findViewById<TextView>(R.id.tvChartHint)
         val chart = root.findViewById<LineChartView>(R.id.chart)
+        val chartCard = root.findViewById<View>(R.id.chartCard)
         val container = root.findViewById<LinearLayout>(R.id.subjectsContainer)
         val btnSemester = root.findViewById<Button>(R.id.btnSemester)
 
@@ -96,7 +102,7 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
             tvOverall.text = "—"
             tvInfo.text = "Пока нет данных. Обнови оценки в разделе «Оценки»."
             tvChartHint.text = ""
-            chart.visibility = View.GONE
+            chartCard.visibility = View.GONE
             btnSemester.visibility = View.GONE
             goalTab.bind("", emptyList(), emptyList())
             return
@@ -111,7 +117,22 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         // общий и по предметам
         val averages = Stats.subjectAverages(current)
         val overall = Stats.overall(averages)
-        tvOverall.text = if (overall == null) "—" else String.format(Locale.US, "%.2f", overall)
+        overallAnim?.cancel()
+        if (overall == null) {
+            tvOverall.text = "—"
+        } else {
+            // Счётчик «набегает» от нуля до значения; в конце ставим точный текст, чтобы округление float не подвело
+            val exact = String.format(Locale.US, "%.2f", overall)
+            overallAnim = ValueAnimator.ofFloat(0f, overall.toFloat()).apply {
+                duration = 700
+                interpolator = DecelerateInterpolator()
+                addUpdateListener { tvOverall.text = String.format(Locale.US, "%.2f", it.animatedValue as Float) }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) { tvOverall.text = exact }
+                })
+                start()
+            }
+        }
         if (overall != null) tvOverall.setTextColor(GradeColors.forScore(requireContext(), overall))
 
         // динамика: только по оценкам, у которых известна дата
@@ -121,20 +142,20 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
 
         val trend = Stats.runningOverall(dated)
         if (trend.size >= 2) {
-            chart.visibility = View.VISIBLE
+            chartCard.visibility = View.VISIBLE
             chart.setData(
                 trend.map { it.value.toFloat() },
                 trend.map { GradeDates.toShort(it.date) ?: "" }
             )
             tvChartHint.text = "Динамика общего среднего (по оценкам с датой)"
         } else {
-            chart.visibility = View.GONE
+            chartCard.visibility = View.GONE
             tvChartHint.text = "График появится, когда накопится минимум 2 оценки с датой"
         }
 
         // строки по предметам: сначала самые сильные
         val inflater = LayoutInflater.from(requireContext())
-        for (avg in averages.sortedByDescending { it.average }) {
+        for ((rowIndex, avg) in averages.sortedByDescending { it.average }.withIndex()) {
             val row = inflater.inflate(R.layout.item_subject_avg, container, false)
             row.findViewById<TextView>(R.id.tvAvgName).text = avg.subject
             val value = SpannableStringBuilder(
@@ -153,10 +174,24 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
             }
             row.findViewById<TextView>(R.id.tvAvgValue).text = value
             val bar = row.findViewById<ProgressBar>(R.id.pbAvg)
-            bar.progress = (avg.average * 10).roundToInt().coerceIn(0, 100)
+            val target = (avg.average * 10).roundToInt().coerceIn(0, 100)
+            bar.progress = 0
             bar.progressTintList = ColorStateList.valueOf(GradeColors.forScore(requireContext(), avg.average))
             container.addView(row)
+
+            // Каскадное появление: строка проявляется, полоска заполняется (задержка растёт с номером строки, потолок 600 мс)
+            val delay = (rowIndex * 50L).coerceAtMost(600L)
+            row.alpha = 0f
+            row.translationY = UiStyle.dp(requireContext(), 8).toFloat()
+            row.animate().alpha(1f).translationY(0f).setStartDelay(delay).setDuration(300).start()
+            bar.postDelayed({ bar.setProgress(target, true) }, delay + 150)
         }
+    }
+
+    override fun onDestroyView() {
+        overallAnim?.cancel()
+        overallAnim = null
+        super.onDestroyView()
     }
 
     private companion object {

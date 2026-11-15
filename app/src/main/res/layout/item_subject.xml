@@ -6,6 +6,9 @@
     android:layout_marginBottom="10dp"
     app:cardBackgroundColor="@color/wyg_surface"
     app:cardCornerRadius="14dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
     app:cardElevation="2dp">
 
     <LinearLayout

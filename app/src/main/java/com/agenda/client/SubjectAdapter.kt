@@ -1,6 +1,8 @@
 package com.agenda.client
 
 import android.graphics.Typeface
+import android.transition.AutoTransition
+import android.transition.TransitionManager
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -102,8 +104,17 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
             holder.tvDetails.visibility = View.GONE
         }
         holder.itemView.setOnClickListener {
-            if (!expanded.add(key)) expanded.remove(key)
-            notifyDataSetChanged()
+            // Меняем только эту карточку и анимируем смену высоты (раньше перерисовывался весь список рывком)
+            (holder.itemView.parent as? ViewGroup)?.let {
+                TransitionManager.beginDelayedTransition(it, AutoTransition().setDuration(220))
+            }
+            if (expanded.add(key)) {
+                holder.tvDetails.text = detailsText(item)
+                holder.tvDetails.visibility = View.VISIBLE
+            } else {
+                expanded.remove(key)
+                holder.tvDetails.visibility = View.GONE
+            }
         }
     }
 

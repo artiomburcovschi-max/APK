@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Появление карточки списка: плавно проявляется и чуть поднимается снизу -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="320"
+    android:interpolator="@android:anim/decelerate_interpolator">
+    <alpha
+        android:fromAlpha="0"
+        android:toAlpha="1" />
+    <translate
+        android:fromYDelta="10%"
+        android:toYDelta="0" />
+</set>

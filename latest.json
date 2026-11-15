@@ -1,8 +1,8 @@
 {
-  "versionCode": 802,
-  "versionName": "0.8.2",
-  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.8.2/WatchYourGrade.apk",
-  "sha256": "7457cadeaad8fd4386b230dd566859510ec45b3002f8ff500e6d96b3ebf220cd",
-  "sizeBytes": 5477696,
-  "notes": "Сделан косметический редизайн вкладок"
+  "versionCode": 803,
+  "versionName": "0.8.3",
+  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.8.3/WatchYourGrade.apk",
+  "sha256": "24272239b68bf6b5e36b81ae2d7edc63edc387db4557355884a0d3a49d0ecba0",
+  "sizeBytes": 5481156,
+  "notes": "Косметическое обновление"
 }

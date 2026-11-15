@@ -100,11 +100,21 @@
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
-                <com.agenda.client.LineChartView
-                    android:id="@+id/chart"
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/chartCard"
                     android:layout_width="match_parent"
-                    android:layout_height="220dp"
-                    android:layout_marginTop="4dp" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    app:cardBackgroundColor="@color/wyg_surface"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="3dp"
+                    app:contentPadding="8dp">
+
+                    <com.agenda.client.LineChartView
+                        android:id="@+id/chart"
+                        android:layout_width="match_parent"
+                        android:layout_height="230dp" />
+                </androidx.cardview.widget.CardView>
 
                 <TextView
                     android:layout_width="wrap_content"
