@@ -14,6 +14,10 @@
             android:icon="@drawable/ic_nav_recent"
             android:title="Новые оценки" />
         <item
+            android:id="@+id/nav_schedule"
+            android:icon="@drawable/ic_nav_schedule"
+            android:title="Расписание" />
+        <item
             android:id="@+id/nav_diary"
             android:icon="@drawable/ic_nav_diary"
             android:title="Дневник" />

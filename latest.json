@@ -1,8 +1,8 @@
 {
-  "versionCode": 803,
-  "versionName": "0.8.3",
-  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.8.3/WatchYourGrade.apk",
-  "sha256": "24272239b68bf6b5e36b81ae2d7edc63edc387db4557355884a0d3a49d0ecba0",
-  "sizeBytes": 5481156,
-  "notes": "Косметическое обновление"
+  "versionCode": 900,
+  "versionName": "0.9.0",
+  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.9.0/WatchYourGrade.apk",
+  "sha256": "311640e6a4e54ae402f8ae622b611e403b52736b0bd20b70203967b269d5226f",
+  "sizeBytes": 5509356,
+  "notes": "Добавлен раздел расписание"
 }

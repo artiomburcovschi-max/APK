@@ -1,0 +1,4 @@
+<resources>
+    <string name="widget_lesson_label">Урок сейчас</string>
+    <string name="widget_lesson_description">Какой сейчас урок или перемена, сколько осталось и что дальше</string>
+</resources>

@@ -11,6 +11,8 @@ import java.io.File
  */
 class PortalExtrasStore(context: Context, profile: String = "") {
 
+    private val appContext = context.applicationContext
+
     // у ребёнка без суффикса прежнее имя файла: старые данные не теряются
     private val file = File(context.filesDir, if (profile.isEmpty()) "extras.json" else "extras_$profile.json")
 
@@ -36,12 +38,15 @@ class PortalExtrasStore(context: Context, profile: String = "") {
             }
         } catch (e: Exception) {
             Log.e("AGENDA_DEBUG", "Не удалось сохранить extras.json: ${e.message}")
+            return
         }
+        LessonWidget.refreshAll(appContext) // свежие уроки: виджет перерисовывается сразу, а не по таймеру
     }
 
     @Synchronized
     fun clear() {
         file.delete()
         File(file.parentFile, file.name + ".tmp").delete()
+        LessonWidget.refreshAll(appContext) // после выхода из аккаунта уроки не должны висеть на рабочем столе
     }
 }

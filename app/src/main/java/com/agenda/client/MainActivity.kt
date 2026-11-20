@@ -250,7 +250,7 @@ class MainActivity : AppCompatActivity(), AppHost {
         }
     }
 
-    /** "BURCOVSCHI ARTIOM" в портале это "ФАМИЛИЯ ИМЯ": показываем "Artiom B." */
+    /** "POPESCU ION" в портале это "ФАМИЛИЯ ИМЯ": показываем "Ion P." */
     private fun shortChildName(full: String): String {
         fun cap(w: String) = w.lowercase().replaceFirstChar { it.uppercase() }
         val parts = full.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
@@ -306,6 +306,7 @@ class MainActivity : AppCompatActivity(), AppHost {
 
     private fun sectionFor(navId: Int): Fragment = when (navId) {
         R.id.nav_recent -> RecentFragment()
+        R.id.nav_schedule -> ScheduleFragment()
         R.id.nav_diary -> DiaryFragment()
         R.id.nav_homework -> HomeworkFragment()
         R.id.nav_absences -> AbsencesFragment()
