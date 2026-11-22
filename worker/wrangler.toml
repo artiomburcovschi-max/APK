@@ -1,0 +1,12 @@
+name = "agenda-stats"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+
+[observability]
+enabled = false
+
+[[d1_databases]]
+binding = "DB"
+database_name = "agenda-stats"
+database_id = "56077ab9-98fb-4eca-b758-a491fd2167a7"

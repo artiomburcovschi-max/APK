@@ -22,4 +22,6 @@ keystore.properties
 keystore.properties
 *.jks
 *.keystore
+node_modules/
+.wrangler/
 

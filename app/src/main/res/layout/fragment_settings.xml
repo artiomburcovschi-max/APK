@@ -52,4 +52,72 @@
         android:text="«Как в системе» повторяет тёмную или светлую тему телефона."
         android:textColor="@color/wyg_text_secondary"
         android:textSize="13sp" />
+
+    <!-- Уведомление «Урок сейчас» -->
+    <LinearLayout
+        android:id="@+id/notifySection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Уведомление об уроке"
+            android:textColor="@color/wyg_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swLessonNotify"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="48dp"
+            android:text="Показывать урок на экране блокировки"
+            android:textColor="@color/wyg_text_primary" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Пока идут уроки: какой урок или перемена, сколько осталось и что дальше. Появляется за 30 минут до первого урока и исчезает после последнего. Данные не покидают телефон. Чтобы название урока было видно на заблокированном экране, в настройках телефона должен быть разрешён показ содержимого уведомлений."
+            android:textColor="@color/wyg_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Анонимная статистика. Скрывается кодом, пока в StatsConfig не указан адрес сервера -->
+    <LinearLayout
+        android:id="@+id/statsSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Анонимная статистика"
+            android:textColor="@color/wyg_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="48dp"
+            android:text="Помогать улучшать приложение"
+            android:textColor="@color/wyg_text_primary" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Раз в сутки уходит один сигнал «приложение открыли»: номер версии и отметки новой недели и месяца. Ни имени, ни оценок, ни уроков, ни идентификатора устройства."
+            android:textColor="@color/wyg_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 </LinearLayout>

@@ -41,6 +41,7 @@ class PortalExtrasStore(context: Context, profile: String = "") {
             return
         }
         LessonWidget.refreshAll(appContext) // свежие уроки: виджет перерисовывается сразу, а не по таймеру
+        LessonNotifier.refresh(appContext)  // и уведомление «Урок сейчас»
     }
 
     @Synchronized
@@ -48,5 +49,6 @@ class PortalExtrasStore(context: Context, profile: String = "") {
         file.delete()
         File(file.parentFile, file.name + ".tmp").delete()
         LessonWidget.refreshAll(appContext) // после выхода из аккаунта уроки не должны висеть на рабочем столе
+        LessonNotifier.refresh(appContext)  // и в уведомлении
     }
 }

@@ -4,6 +4,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Уведомление «Урок сейчас»: показ уведомлений (Android 13+, спрашивается при включении в настройках),
+         повторная постановка будильника после перезагрузки, плашка «живого обновления» на Android 16+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+
     <application
         android:name=".AgendaApp"
         android:allowBackup="false"
@@ -29,6 +35,19 @@
             android:name=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Уведомление «Урок сейчас»: будильник границы урока, перезагрузка, обновление приложения, смена времени -->
+        <receiver
+            android:name=".LessonNotifyReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Виджет «Урок сейчас». Время/пояс/дата: после смены пересчитываем границы уроков -->
         <receiver
