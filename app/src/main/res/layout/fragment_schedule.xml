@@ -10,6 +10,66 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- Напоминание, что есть уведомление «Урок сейчас»: показывается, пока оно выключено -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardNotifyPromo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/wyg_accent_bg"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Урок прямо на экране блокировки"
+                    android:textColor="@color/wyg_accent_text"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Уведомление показывает, какой сейчас урок или перемена и сколько осталось, не заходя в приложение. Выключить можно в Настройках."
+                    android:textColor="@color/wyg_text_body"
+                    android:textSize="14sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="end"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnPromoHide"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Не напоминать"
+                        android:textColor="@color/wyg_text_body" />
+
+                    <Button
+                        android:id="@+id/btnPromoEnable"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Включить"
+                        android:textColor="@color/wyg_primary"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!-- Что происходит прямо сейчас: урок или перемена, обратный отсчёт, что дальше -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

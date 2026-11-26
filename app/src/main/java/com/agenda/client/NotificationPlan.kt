@@ -28,17 +28,21 @@ object NotificationPlanner {
     /** За сколько до первого урока уведомление появляется. */
     const val LEAD_BEFORE_FIRST_MS = 30 * 60_000L
 
+    /** Дольше суток «смахнули» не действует: так сломанные часы или устаревшая отметка не спрячут уведомление надолго. */
+    const val MAX_DISMISS_MS = 24 * 3600_000L
+
     /**
-     * @param dismissedDay день («yyyy-MM-dd»), когда пользователь смахнул уведомление: в этот день его больше не показываем.
-     *   Пустая строка: не смахивали.
+     * @param dismissedUntilMs до какого момента (epoch мс) уведомление скрыто, потому что его смахнули. 0: не смахивали.
+     *   Это ближайшая граница урока, а не конец дня: случайный свайп или «Очистить всё» не должны убирать уведомление
+     *   на весь день (раньше было так, и вернуть его мог только переключатель в настройках).
      */
-    fun plan(lessons: List<Lesson>, nowMs: Long, zone: TimeZone, dismissedDay: String = ""): NotificationPlan {
+    fun plan(lessons: List<Lesson>, nowMs: Long, zone: TimeZone, dismissedUntilMs: Long = 0L): NotificationPlan {
         val margin = WidgetPlanner.REFRESH_MARGIN_MS
         val state = LessonClock.stateAt(lessons, nowMs, zone)
 
-        // Смахнули сегодня: молчим до полуночи (nextBoundary для «пустых» состояний это ближайшая полночь)
-        if (dismissedDay.isNotEmpty() && dismissedDay == LessonClock.isoOf(nowMs, zone)) {
-            return hidden(LessonClock.nextBoundary(ClockState.NoData, nowMs, zone) + margin)
+        // Смахнули: молчим до ближайшей границы урока, потом уведомление возвращается само
+        if (dismissedUntilMs > nowMs && dismissedUntilMs - nowMs <= MAX_DISMISS_MS) {
+            return hidden(dismissedUntilMs)
         }
 
         val info = LessonClock.info(state, nowMs, zone)
@@ -63,5 +67,25 @@ object NotificationPlanner {
         }
     }
 
+    /**
+     * До какого момента прятать уведомление после «смахнули» сейчас: до ближайшей границы (конец урока или перемены).
+     * null: сейчас уведомления и так нет, прятать нечего (событие «смахнули» пришло зря).
+     */
+    fun dismissUntil(lessons: List<Lesson>, nowMs: Long, zone: TimeZone): Long? {
+        val current = plan(lessons, nowMs, zone)
+        return if (current.show) current.refreshAtMs else null
+    }
+
     private fun hidden(refreshAtMs: Long) = NotificationPlan(false, "", "", null, refreshAtMs)
+}
+
+/** Когда на экране «Расписание» показывать карточку «такое уведомление есть» (чистая логика, под тестами). */
+object NotifyPromptPolicy {
+    /**
+     * @param enabled переключатель в приложении включён
+     * @param canPost система разрешает показывать уведомления
+     * @param hidden пользователь нажал «Не напоминать»
+     */
+    fun shouldShow(enabled: Boolean, canPost: Boolean, hidden: Boolean): Boolean =
+        !hidden && !(enabled && canPost)
 }

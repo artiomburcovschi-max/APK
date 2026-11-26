@@ -1,6 +1,9 @@
 package com.agenda.client
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -10,6 +13,8 @@ import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -37,6 +42,9 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val daySummary: TextView = root.findViewById(R.id.tvScheduleSummary)
         val empty: TextView = root.findViewById(R.id.tvScheduleEmpty)
         val container: LinearLayout = root.findViewById(R.id.scheduleContainer)
+        val promo: View = root.findViewById(R.id.cardNotifyPromo)
+        val promoEnable: Button = root.findViewById(R.id.btnPromoEnable)
+        val promoHide: Button = root.findViewById(R.id.btnPromoHide)
     }
 
     private var host: AppHost? = null
@@ -48,6 +56,21 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     /** По чему узнаём, что урок сменился и список надо перерисовать (подсветка текущего урока). */
     private var lastStateKey: String? = null
+
+    /** Ответ на запрос разрешения показывать уведомления (Android 13+): карточка «Включить» просит его сама. */
+    private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val ctx = context?.applicationContext ?: return@registerForActivityResult
+        if (granted) {
+            LessonNotifier.setEnabled(ctx, true)
+        } else {
+            Toast.makeText(
+                ctx,
+                "Без разрешения уведомление показать нельзя. Разрешить можно в настройках телефона.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        updatePromo()
+    }
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -69,6 +92,13 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         views.prevWeek.setOnClickListener { weekOffset--; selectedDate = null; renderList() }
         views.nextWeek.setOnClickListener { weekOffset++; selectedDate = null; renderList() }
 
+        views.promoEnable.setOnClickListener { enableNotification() }
+        views.promoHide.setOnClickListener {
+            LessonNotifier.hidePromo(requireContext().applicationContext)
+            updatePromo()
+        }
+        updatePromo()
+
         renderList()
         updateLive()
 
@@ -82,11 +112,40 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         handler.removeCallbacks(ticker)
         handler.post(ticker)
         renderList() // пока экрана не было, мог начаться другой урок или день
+        updatePromo() // уведомление могли включить или выключить в «Настройках»
     }
 
     override fun onPause() {
         handler.removeCallbacks(ticker)
         super.onPause()
+    }
+
+    // ---------- карточка «есть уведомление об уроке» ----------
+
+    private fun updatePromo() {
+        val ctx = context?.applicationContext ?: return
+        val views = ui ?: return
+        val show = NotifyPromptPolicy.shouldShow(
+            enabled = LessonNotifier.isEnabled(ctx),
+            canPost = LessonNotifier.canPost(ctx),
+            hidden = LessonNotifier.isPromoHidden(ctx)
+        )
+        views.promo.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun enableNotification() {
+        val ctx = requireContext().applicationContext
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) // включим, когда разрешат
+            return
+        }
+        LessonNotifier.setEnabled(ctx, true)
+        if (!LessonNotifier.canPost(ctx)) {
+            Toast.makeText(ctx, "Уведомления для приложения выключены в настройках телефона.", Toast.LENGTH_LONG).show()
+        }
+        updatePromo()
     }
 
     // ---------- живая карточка ----------

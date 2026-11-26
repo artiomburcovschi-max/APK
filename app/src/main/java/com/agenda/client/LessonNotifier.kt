@@ -24,7 +24,8 @@ import java.util.TimeZone
  * открывать приложение не нужно. Включается в «Настройках», по умолчанию выключено.
  *
  * Отсчёт тикает сам (Chronometer в уведомлении), перерисовка только на границах урока. Её ставит неточный будильник
- * (setAndAllowWhileIdle, без разрешения на точные будильники), поэтому на границе возможна задержка в несколько секунд.
+ * (setAndAllowWhileIdle, RTC_WAKEUP, без разрешения на точные будильники), поэтому на границе возможна задержка.
+ * Смахнули уведомление: оно возвращается на ближайшей границе урока (раньше пропадало на весь день).
  * Что показывать и когда пересчитать, решает NotificationPlanner (чистая логика под тестами).
  */
 object LessonNotifier {
@@ -35,7 +36,9 @@ object LessonNotifier {
     private const val NOTIFICATION_ID = 4107
     private const val PREFS = "lesson_notify"
     private const val KEY_ENABLED = "enabled"
-    private const val KEY_DISMISSED_DAY = "dismissed_day"
+    private const val KEY_DISMISSED_UNTIL = "dismissed_until_ms"
+    private const val LEGACY_KEY_DISMISSED_DAY = "dismissed_day" // прежняя схема «скрыто до полуночи»: теперь только стираем
+    private const val KEY_PROMO_HIDDEN = "promo_hidden"
     private const val TAG = "LessonNotifier"
 
     private fun prefs(context: Context) =
@@ -43,10 +46,18 @@ object LessonNotifier {
 
     fun isEnabled(context: Context): Boolean = prefs(context).getBoolean(KEY_ENABLED, false)
 
-    /** Включить или выключить. При включении «смахнули сегодня» сбрасывается: человек сам попросил показывать. */
+    /** Включить или выключить. «Смахнули» сбрасывается: человек сам попросил показывать. */
     fun setEnabled(context: Context, on: Boolean) {
-        prefs(context).edit().putBoolean(KEY_ENABLED, on).remove(KEY_DISMISSED_DAY).apply()
+        prefs(context).edit().putBoolean(KEY_ENABLED, on)
+            .remove(KEY_DISMISSED_UNTIL).remove(LEGACY_KEY_DISMISSED_DAY).apply()
         refresh(context)
+    }
+
+    /** Карточка-напоминание на экране «Расписание» скрыта кнопкой «Не напоминать». */
+    fun isPromoHidden(context: Context): Boolean = prefs(context).getBoolean(KEY_PROMO_HIDDEN, false)
+
+    fun hidePromo(context: Context) {
+        prefs(context).edit().putBoolean(KEY_PROMO_HIDDEN, true).apply()
     }
 
     /** Можно ли показывать уведомления: на Android 13+ нужно разрешение, раньше достаточно общего выключателя. */
@@ -59,11 +70,22 @@ object LessonNotifier {
         }
     }
 
-    /** Пользователь смахнул уведомление: до конца дня не показываем (завтра появится снова). */
-    fun markDismissedToday(context: Context) {
-        val today = LessonClock.isoOf(System.currentTimeMillis(), TimeZone.getDefault())
-        prefs(context).edit().putString(KEY_DISMISSED_DAY, today).apply()
-        refresh(context)
+    /**
+     * Уведомление смахнули (или нажали «Очистить всё»): прячем до ближайшей границы урока, потом оно возвращается само.
+     * Раньше прятали до конца дня, а вернуть могла только выключка и включка переключателя. Система присылает это событие
+     * и при случайных жестах, поэтому наказывать за него целым днём нельзя.
+     */
+    fun markDismissed(context: Context) {
+        val app = context.applicationContext
+        try {
+            val lessons = PortalExtrasStore(app, ChildStore(app).profileKey()).load().lessons
+            val until = NotificationPlanner.dismissUntil(lessons, System.currentTimeMillis(), TimeZone.getDefault())
+            if (until != null) prefs(app).edit().putLong(KEY_DISMISSED_UNTIL, until).apply()
+            Log.i(TAG, "Смахнули: скрыто до границы урока=${until != null}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Не удалось запомнить «смахнули»: ${e.message}")
+        }
+        refresh(app)
     }
 
     /** Показать, обновить или убрать уведомление и поставить будильник на следующую границу. Безопасно звать откуда угодно. */
@@ -78,8 +100,20 @@ object LessonNotifier {
             // Уроки того ребёнка, который выбран в приложении
             val lessons = PortalExtrasStore(app, ChildStore(app).profileKey()).load().lessons
             val now = System.currentTimeMillis()
-            val dismissed = prefs(app).getString(KEY_DISMISSED_DAY, "").orEmpty()
-            val plan = NotificationPlanner.plan(lessons, now, TimeZone.getDefault(), dismissed)
+            val sp = prefs(app)
+            if (sp.contains(LEGACY_KEY_DISMISSED_DAY)) {
+                // отметка прежней версии «скрыто до полуночи» могла застрять: стираем, уведомление вернётся
+                sp.edit().remove(LEGACY_KEY_DISMISSED_DAY).apply()
+            }
+            val dismissedUntil = sp.getLong(KEY_DISMISSED_UNTIL, 0L)
+            val plan = NotificationPlanner.plan(lessons, now, TimeZone.getDefault(), dismissedUntil)
+            // Для разбора «пропало»: без названий уроков, только числа и причина
+            val today = LessonClock.isoOf(now, TimeZone.getDefault())
+            Log.i(
+                TAG,
+                "refresh: показать=${plan.show}, уроков всего=${lessons.size}, сегодня=${lessons.count { it.date == today }}, " +
+                    "скрыто до=${if (dismissedUntil > now) dismissedUntil - now else 0} мс, следующий пересчёт через ${plan.refreshAtMs - now} мс"
+            )
 
             val manager = NotificationManagerCompat.from(app)
             if (plan.show) {
@@ -149,8 +183,9 @@ object LessonNotifier {
 
     private fun scheduleAt(context: Context, atMs: Long) {
         val alarms = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        // RTC без WAKEUP: телефон ради уведомления не будим, просроченный будильник сработает после пробуждения
-        alarms.setAndAllowWhileIdle(AlarmManager.RTC, atMs, tickIntent(context))
+        // RTC_WAKEUP: будильник сработает и при спящем телефоне. Раньше стоял RTC без WAKEUP: пока телефон спал,
+        // уведомление показывало прошлый урок или перемену. Пара срабатываний в день батарею не чувствует
+        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMs, tickIntent(context))
     }
 
     /** Убрать уведомление и будильник: выключили в настройках или пропало разрешение. */
@@ -167,8 +202,9 @@ object LessonNotifier {
  */
 class LessonNotifyReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        Log.i("LessonNotifier", "событие: ${intent.action}")
         if (intent.action == LessonNotifier.ACTION_DISMISSED) {
-            LessonNotifier.markDismissedToday(context)
+            LessonNotifier.markDismissed(context)
         } else {
             LessonNotifier.refresh(context)
         }

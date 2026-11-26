@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
 
     <LinearLayout
         android:id="@+id/contentRoot"
@@ -16,13 +11,13 @@
         android:background="@color/wyg_surface"
         android:orientation="vertical">
 
+        <!-- Заголовок экрана; справа значок аккаунта (меню toolbar_menu), слева стрелка «назад» только в подразделах -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/wyg_surface"
-            app:navigationContentDescription="Меню"
-            app:navigationIcon="@drawable/ic_menu"
+            app:navigationContentDescription="Назад"
             app:navigationIconTint="@color/wyg_text_primary"
             app:titleTextColor="@color/wyg_text_primary" />
 
@@ -79,28 +74,25 @@
             android:layout_weight="1"
             android:background="@color/wyg_background" />
 
+        <!-- Отступ от системной панели жестов уже даёт contentRoot (см. setupWindowInsets), поэтому свои отступы панель не добавляет -->
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottomNav"
+            style="@style/Widget.Agenda.BottomNav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:labelVisibilityMode="labeled"
+            app:menu="@menu/bottom_nav_menu"
+            app:paddingBottomSystemWindowInsets="false"
+            app:paddingLeftSystemWindowInsets="false"
+            app:paddingRightSystemWindowInsets="false" />
     </LinearLayout>
 
-        <!-- Скрытый движок. Размер НЕ нулевой: при 0x0 календарь портала (FullCalendar) не рисует уроки, и «Дневник»
-             оставался пустым. 1280dp: портал видит ширину обычного компьютера, как в Chrome, где разбор проверялся.
-             invisible: пользователь его не видит и не нажимает, но вёрстка и скрипты работают. -->
-        <WebView
-            android:id="@+id/webView"
-            android:layout_width="1280dp"
-            android:layout_height="900dp"
-            android:visibility="invisible" />
-    </FrameLayout>
-
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navView"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
-        android:background="@color/wyg_surface"
-        android:fitsSystemWindows="true"
-        app:headerLayout="@layout/nav_header"
-        app:itemIconTint="@color/wyg_text_body"
-        app:itemShapeFillColor="@color/nav_item_fill"
-        app:itemTextColor="@color/wyg_text_primary"
-        app:menu="@menu/drawer_menu" />
-</androidx.drawerlayout.widget.DrawerLayout>
+    <!-- Скрытый движок. Размер НЕ нулевой: при 0x0 календарь портала (FullCalendar) не рисует уроки, и «Дневник»
+         оставался пустым. 1280dp: портал видит ширину обычного компьютера, как в Chrome, где разбор проверялся.
+         invisible: пользователь его не видит и не нажимает, но вёрстка и скрипты работают. -->
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="1280dp"
+        android:layout_height="900dp"
+        android:visibility="invisible" />
+</FrameLayout>

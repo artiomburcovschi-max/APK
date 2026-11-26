@@ -26,13 +26,13 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.GravityCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.navigation.NavigationView
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import okhttp3.*
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -41,14 +41,14 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Хозяин приложения: боковая шторка + «движок» (скрытый WebView, вход на портал, история оценок).
- * Разделы (Оценки, Аналитика, Аккаунт, Настройки, О приложении) это фрагменты, которые меняются в области content.
- * Новый раздел = пункт в res/menu/drawer_menu.xml + фрагмент + одна строка в sectionFor().
+ * Хозяин приложения: нижняя панель + «движок» (скрытый WebView, вход на портал, история оценок).
+ * Экраны это фрагменты, которые меняются в области content. Список экранов и правила навигации в Navigation.kt.
+ * Новый экран = значение в Section + фрагмент + одна строка в fragmentFor(): `when` над Section не соберётся,
+ * пока экран не добавлен.
  */
 class MainActivity : AppCompatActivity(), AppHost {
 
-    private lateinit var drawer: DrawerLayout
-    private lateinit var navView: NavigationView
+    private lateinit var bottomNav: BottomNavigationView
     private lateinit var toolbar: MaterialToolbar
     private lateinit var webView: WebView
     private lateinit var repo: GradesRepository
@@ -73,7 +73,11 @@ class MainActivity : AppCompatActivity(), AppHost {
     private var progressHiddenState = false
     private var stateListener: (() -> Unit)? = null
 
-    private var currentNavId = R.id.nav_grades
+    // Какой экран сейчас открыт (его запоминает метка фрагмента, поэтому поворот экрана ничего не теряет)
+    private var currentSection = NavLogic.START
+
+    // true, пока мы сами переставляем отметку на нижней панели: иначе это выглядело бы как нажатие пользователя
+    private var syncingNav = false
 
     // ---- AppHost ----
     override val grades: List<SubjectGrades> get() = gradesState
@@ -98,6 +102,10 @@ class MainActivity : AppCompatActivity(), AppHost {
     }
 
     override fun openUpdate(info: UpdateInfo) = openUrl(info.apkUrl)
+
+    override fun openSection(section: Section) {
+        if (section.isRoot) showRoot(section) else showSub(section)
+    }
 
     override val progress: RefreshProgress? get() = progressState
     override val progressHidden: Boolean get() = progressHiddenState
@@ -159,8 +167,7 @@ class MainActivity : AppCompatActivity(), AppHost {
         accountTypeValue = store.loadType()
 
         setContentView(R.layout.activity_main)
-        drawer = findViewById(R.id.drawerLayout)
-        navView = findViewById(R.id.navView)
+        bottomNav = findViewById(R.id.bottomNav)
         toolbar = findViewById(R.id.toolbar)
         webView = findViewById(R.id.webView)
 
@@ -199,11 +206,6 @@ class MainActivity : AppCompatActivity(), AppHost {
 
         showUpdateBanner()
         updater.refreshIfDue { runOnUiThread { showUpdateBanner() } }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putInt(KEY_NAV, currentNavId)
     }
 
     // ---- вкладки детей ----
@@ -261,74 +263,140 @@ class MainActivity : AppCompatActivity(), AppHost {
         }
     }
 
-    // ---- оболочка: шторка, отступы, кнопка «назад» ----
+    // ---- оболочка: нижняя панель, отступы, кнопка «назад» ----
     private fun setupWindowInsets() {
         // С targetSdk 35+ приложение рисуется под системными панелями. Сдвигаем содержимое на их высоту.
         val content = findViewById<View>(R.id.contentRoot)
         ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets // не «съедаем», чтобы шторка тоже получила свои отступы
+            insets // не «съедаем»: отступы нужны и остальным окнам приложения
         }
         // Значки в статус-баре и панели навигации: тёмные на светлой теме, светлые на тёмной
         SystemBars.matchTheme(this)
     }
 
     private fun setupNavigation(savedInstanceState: Bundle?) {
-        navView.getHeaderView(0).findViewById<TextView>(R.id.tvNavUser).text = usernameIntent
-        toolbar.setNavigationOnClickListener { drawer.openDrawer(GravityCompat.START) }
-        navView.setNavigationItemSelectedListener { item ->
-            showSection(item.itemId)
-            drawer.closeDrawer(GravityCompat.START)
+        // Значок аккаунта в углу: цвет задаём здесь, чтобы он читался и на светлой, и на тёмной теме
+        toolbar.inflateMenu(R.menu.toolbar_menu)
+        toolbar.menu.findItem(R.id.action_account)?.icon?.let {
+            DrawableCompat.setTint(it.mutate(), ContextCompat.getColor(this, R.color.wyg_text_primary))
+        }
+        toolbar.setOnMenuItemClickListener { item ->
+            if (item.itemId == R.id.action_account) {
+                openSection(Section.ACCOUNT)
+                true
+            } else {
+                false
+            }
+        }
+        // Стрелка «назад» видна только в подразделах и ведёт туда же, куда кнопка «назад» телефона
+        toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
+
+        bottomNav.setOnItemSelectedListener { item ->
+            if (!syncingNav) tabForItem(item.itemId)?.let { showRoot(NavLogic.rootFor(it)) }
             true
         }
+        // Повторное нажатие на вкладку возвращает на её корневой экран (например, из «Настроек» к списку «Ещё»)
+        bottomNav.setOnItemReselectedListener { item ->
+            if (!syncingNav) tabForItem(item.itemId)?.let { showRoot(NavLogic.rootFor(it)) }
+        }
+        supportFragmentManager.addOnBackStackChangedListener { syncChrome() }
 
         if (savedInstanceState == null) {
-            showSection(currentNavId)
+            // Виджет и уведомление кладут в Intent, какой раздел открыть (раньше это значение никто не читал,
+            // и нажатие вело на «Оценки»)
+            val start = NavLogic.fromOpenExtra(intent?.getStringExtra(LessonWidget.EXTRA_OPEN)) ?: NavLogic.START
+            showRoot(start)
         } else {
-            // Поворот экрана: FragmentManager сам восстановил фрагмент, нам остаётся вернуть заголовок и пункт меню
-            currentNavId = savedInstanceState.getInt(KEY_NAV, R.id.nav_grades)
-            toolbar.title = navView.menu.findItem(currentNavId)?.title
-            navView.setCheckedItem(currentNavId)
+            // Поворот экрана: FragmentManager сам вернул фрагменты, нам остаётся поправить заголовок и нижнюю панель
+            syncChrome()
         }
 
-        // «Назад»: сначала закрыть шторку, потом вернуться на «Оценки», и только потом выйти
+        // «Назад»: сначала закрыть подраздел (вернёт туда, откуда его открыли), потом на «Главную», и только потом выйти
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                when {
-                    drawer.isDrawerOpen(GravityCompat.START) -> drawer.closeDrawer(GravityCompat.START)
-                    currentNavId != R.id.nav_grades -> showSection(R.id.nav_grades)
-                    else -> finish()
+                if (supportFragmentManager.backStackEntryCount > 0) {
+                    supportFragmentManager.popBackStack()
+                    return
                 }
+                val target = NavLogic.backTarget(currentSection)
+                if (target == null) finish() else showRoot(target)
             }
         })
     }
 
-    private fun sectionFor(navId: Int): Fragment = when (navId) {
-        R.id.nav_recent -> RecentFragment()
-        R.id.nav_schedule -> ScheduleFragment()
-        R.id.nav_diary -> DiaryFragment()
-        R.id.nav_homework -> HomeworkFragment()
-        R.id.nav_absences -> AbsencesFragment()
-        R.id.nav_analytics -> AnalyticsFragment()
-        R.id.nav_teacher -> TeachersFragment()
-        R.id.nav_account -> AccountFragment()
-        R.id.nav_settings -> SettingsFragment()
-        R.id.nav_about -> AboutFragment()
-        else -> GradesFragment()
+    private fun fragmentFor(section: Section): Fragment = when (section) {
+        Section.HOME -> HomeFragment()
+        Section.GRADES -> GradesFragment()
+        Section.ANALYTICS -> AnalyticsFragment()
+        Section.SCHEDULE -> ScheduleFragment()
+        Section.MORE -> MoreFragment()
+        Section.RECENT -> RecentFragment()
+        Section.DIARY -> DiaryFragment()
+        Section.HOMEWORK -> HomeworkFragment()
+        Section.ABSENCES -> AbsencesFragment()
+        Section.TEACHERS -> TeachersFragment()
+        Section.ACCOUNT -> AccountFragment()
+        Section.SETTINGS -> SettingsFragment()
+        Section.ABOUT -> AboutFragment()
     }
 
-    private fun showSection(navId: Int) {
-        val alreadyShown = navId == currentNavId &&
-            supportFragmentManager.findFragmentById(R.id.content) != null
-        if (alreadyShown) return
+    private fun itemForTab(tab: Tab): Int = when (tab) {
+        Tab.HOME -> R.id.nav_home
+        Tab.GRADES -> R.id.nav_grades
+        Tab.ANALYTICS -> R.id.nav_analytics
+        Tab.SCHEDULE -> R.id.nav_schedule
+        Tab.MORE -> R.id.nav_more
+    }
 
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.content, sectionFor(navId))
+    private fun tabForItem(itemId: Int): Tab? = Tab.values().firstOrNull { itemForTab(it) == itemId }
+
+    /** Открыть корневой экран вкладки: подразделы закрываются, экран заменяется. Метка фрагмента = ключ раздела. */
+    private fun showRoot(section: Section) {
+        val fm = supportFragmentManager
+        val shown = fm.findFragmentById(R.id.content)
+        if (shown != null && shown.tag == section.key && fm.backStackEntryCount == 0) return
+
+        fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        fm.beginTransaction()
+            .replace(R.id.content, fragmentFor(section), section.key)
+            .runOnCommit { syncChrome() }
             .commit()
-        currentNavId = navId
-        toolbar.title = navView.menu.findItem(navId)?.title
-        navView.setCheckedItem(navId)
+    }
+
+    /** Открыть подраздел поверх текущего экрана. В имени записи стека лежит ключ экрана, откуда пришли. */
+    private fun showSub(section: Section) {
+        val fm = supportFragmentManager
+        if (fm.findFragmentById(R.id.content)?.tag == section.key) return
+
+        // runOnCommit с addToBackStack нельзя (бросает исключение): заголовок и панель обновит слушатель стека
+        // (addOnBackStackChangedListener), а post подстраховывает: выполнится уже после самой транзакции
+        fm.beginTransaction()
+            .replace(R.id.content, fragmentFor(section), section.key)
+            .addToBackStack(currentSection.key)
+            .commit()
+        toolbar.post { syncChrome() }
+    }
+
+    /** Заголовок, стрелка «назад», значок аккаунта и отметка на нижней панели по тому, какой экран реально открыт. */
+    private fun syncChrome() {
+        val fm = supportFragmentManager
+        val section = NavLogic.fromKey(fm.findFragmentById(R.id.content)?.tag) ?: return
+        currentSection = section
+        val depth = fm.backStackEntryCount
+        val originKey = if (depth > 0) fm.getBackStackEntryAt(depth - 1).name else null
+
+        toolbar.title = section.title
+        toolbar.navigationIcon = if (section.isRoot) null else ContextCompat.getDrawable(this, R.drawable.ic_arrow_back)
+        toolbar.menu.findItem(R.id.action_account)?.isVisible = section != Section.ACCOUNT
+
+        val itemId = itemForTab(NavLogic.highlightedTab(section, originKey))
+        if (bottomNav.selectedItemId != itemId) {
+            syncingNav = true
+            bottomNav.selectedItemId = itemId
+            syncingNav = false
+        }
     }
 
     private fun publishState() {
@@ -898,9 +966,5 @@ class MainActivity : AppCompatActivity(), AppHost {
         if (modified > 0) parts.add("исправлено: $modified")
         if (removed > 0) parts.add("удалено: $removed")
         return if (parts.isEmpty()) "новых оценок нет" else parts.joinToString(" · ")
-    }
-
-    private companion object {
-        const val KEY_NAV = "nav_id"
     }
 }

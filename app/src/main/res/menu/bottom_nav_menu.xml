@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Нижняя панель. Порядок и состав синхронизированы с NavLogic.TABS (Navigation.kt). -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_nav_home"
+        android:title="Главная" />
+    <item
+        android:id="@+id/nav_grades"
+        android:icon="@drawable/ic_nav_grades"
+        android:title="Оценки" />
+    <item
+        android:id="@+id/nav_analytics"
+        android:icon="@drawable/ic_nav_analytics"
+        android:title="Аналитика" />
+    <item
+        android:id="@+id/nav_schedule"
+        android:icon="@drawable/ic_nav_schedule"
+        android:title="Расписание" />
+    <item
+        android:id="@+id/nav_more"
+        android:icon="@drawable/ic_nav_more"
+        android:title="Ещё" />
+</menu>

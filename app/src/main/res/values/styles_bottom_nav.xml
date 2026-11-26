@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Нижняя панель в цветах приложения. Тема Material 3 по умолчанию красит выбранную вкладку фиолетовым,
+         поэтому цвета заданы явно, а общую тему не трогаем. -->
+    <style name="Widget.Agenda.BottomNav" parent="Widget.Material3.BottomNavigationView">
+        <item name="backgroundTint">@color/wyg_surface</item>
+        <item name="itemIconTint">@color/bottom_nav_item</item>
+        <item name="itemTextColor">@color/bottom_nav_item</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.Agenda.BottomNav.Indicator</item>
+    </style>
+
+    <style name="Widget.Agenda.BottomNav.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/wyg_accent_bg</item>
+    </style>
+</resources>

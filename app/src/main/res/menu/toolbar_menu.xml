@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Значок аккаунта в углу верхней строки. Цвет значка задаёт MainActivity (светлая и тёмная тема). -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_account"
+        android:icon="@drawable/ic_nav_account"
+        android:title="Аккаунт"
+        app:showAsAction="always" />
+</menu>

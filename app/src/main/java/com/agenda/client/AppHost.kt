@@ -34,4 +34,10 @@ interface AppHost {
     fun openUpdate(info: UpdateInfo)
 
     fun confirmLogout()
+
+    /**
+     * Открыть экран по имени. Корневой экран вкладки заменяет текущий, подраздел открывается поверх и закрывается
+     * кнопкой «назад» (возвращает туда, откуда открыли).
+     */
+    fun openSection(section: Section)
 }

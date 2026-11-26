@@ -1,8 +1,8 @@
 {
-  "versionCode": 1000,
-  "versionName": "0.10.0",
-  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.10.0/WatchYourGrade.apk",
-  "sha256": "72a2a0603e85a162a1a42fbcb4884b2fd48fbfa5e1f0a02ae0f5c3e555bd922e",
-  "sizeBytes": 5523868,
-  "notes": "Добавлены улучшения парсера,сервер статистики"
+  "versionCode": 1100,
+  "versionName": "0.11.0",
+  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.11.0/WatchYourGrade.apk",
+  "sha256": "3f0ae9dadd946603a9e655c8efe6ffa6aa04f0aa3dc20e65f3a2f7a9652e688d",
+  "sizeBytes": 5559100,
+  "notes": "Добавлена функция поделится и был сделан редизайн,освежилась иконка"
 }

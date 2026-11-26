@@ -23,8 +23,8 @@ class NotificationPlannerTest {
     private val lessons = school(day) + school(tomorrow)
 
     private fun at(date: String, hhmm: String, sec: Int = 0) = LessonClock.epoch(date, hhmm, zone)!! + sec * 1000L
-    private fun plan(hhmm: String, sec: Int = 0, dismissed: String = "", date: String = day, data: List<Lesson> = lessons) =
-        NotificationPlanner.plan(data, at(date, hhmm, sec), zone, dismissed)
+    private fun plan(hhmm: String, sec: Int = 0, dismissedUntil: Long = 0L, date: String = day, data: List<Lesson> = lessons) =
+        NotificationPlanner.plan(data, at(date, hhmm, sec), zone, dismissedUntil)
 
     @Test
     fun inALessonItShowsTheCountdownTargetAndWhatIsNext() {
@@ -83,15 +83,89 @@ class NotificationPlannerTest {
     }
 
     @Test
-    fun aDismissedNotificationStaysGoneForTheRestOfTheDayButReturnsTomorrow() {
-        val dismissed = plan("09:00", dismissed = day)
-        assertFalse(dismissed.show)
-        assertEquals(at(tomorrow, "00:00") + margin, dismissed.refreshAtMs)
+    fun aDismissedNotificationComesBackAtTheNextBoundaryNotTomorrow() {
+        // смахнули в 09:00, во время урока 2 (до 09:40)
+        val until = NotificationPlanner.dismissUntil(lessons, at(day, "09:00"), zone)
+        assertEquals(at(day, "09:40") + margin, until)
 
-        // вчерашнее «смахнули» сегодня не действует
-        assertTrue(plan("09:00", dismissed = "2026-11-18").show)
-        // и завтра в то же время снова показывается
-        assertTrue(plan("09:00", dismissed = day, date = tomorrow).show)
+        val hidden = plan("09:00", dismissedUntil = until!!)
+        assertFalse(hidden.show)
+        assertEquals("проснуться надо ровно к границе", until, hidden.refreshAtMs)
+
+        assertFalse("за секунду до границы ещё скрыто", plan("09:40", 0, until).show)
+        // в момент пересчёта (граница + запас) уведомление возвращается, уже с перерывом
+        val back = NotificationPlanner.plan(lessons, until, zone, until)
+        assertTrue(back.show)
+        assertEquals("Перемена", back.title)
+    }
+
+    @Test
+    fun aDismissalDuringABreakHidesUntilTheNextLessonStarts() {
+        val until = NotificationPlanner.dismissUntil(lessons, at(day, "12:30"), zone)
+        assertEquals(at(day, "12:45") + margin, until)
+    }
+
+    @Test
+    fun dismissingWhenThereIsNothingToShowDoesNothing() {
+        assertNull(NotificationPlanner.dismissUntil(lessons, at(day, "15:00"), zone))
+        assertNull(NotificationPlanner.dismissUntil(emptyList(), at(day, "09:00"), zone))
+        assertNull(NotificationPlanner.dismissUntil(lessons, at(day, "05:00"), zone))
+    }
+
+    @Test
+    fun anOldDismissalNeverHidesTheNotification() {
+        val now = at(day, "09:00")
+        assertTrue("граница уже позади", NotificationPlanner.plan(lessons, now, zone, now - 1).show)
+        assertTrue("граница ровно сейчас", NotificationPlanner.plan(lessons, now, zone, now).show)
+    }
+
+    @Test
+    fun aDismissalFurtherThanADayAwayIsIgnored() {
+        val now = at(day, "09:00")
+        val max = NotificationPlanner.MAX_DISMISS_MS
+        assertFalse("ровно сутки ещё действует", NotificationPlanner.plan(lessons, now, zone, now + max).show)
+        assertTrue("больше суток: часы сбились или отметка битая", NotificationPlanner.plan(lessons, now, zone, now + max + 1).show)
+        // само значение «сутки» закреплено поведением, а не только константой
+        assertTrue("через 24 ч 30 мин уже игнорируется", NotificationPlanner.plan(lessons, now, zone, now + 24 * 3600_000L + 30 * 60_000L).show)
+        assertFalse("через 23 ч 30 мин ещё действует", NotificationPlanner.plan(lessons, now, zone, now + 23 * 3600_000L + 30 * 60_000L).show)
+    }
+
+    @Test
+    fun aSwipeInTheMiddleOfTheDayCostsOnlyOneStateNotTheWholeDay() {
+        // 09:00 идёт урок 2; смахнули. Дальше идём по цепочке пересчётов, как это делают будильники
+        var dismissedUntil = NotificationPlanner.dismissUntil(lessons, at(day, "09:00"), zone)!!
+        var now = at(day, "09:00")
+        val steps = mutableListOf<String>()
+        val midnight = at(tomorrow, "00:00")
+        var guard = 0
+        while (now < midnight) {
+            val p = NotificationPlanner.plan(lessons, now, zone, dismissedUntil)
+            steps.add(if (p.show) p.title else "—")
+            now = p.refreshAtMs
+            assertTrue("зациклились", ++guard < 40)
+        }
+        assertEquals(
+            listOf(
+                "—",                            // 09:00, смахнули: скрыто до конца урока 2
+                "Перемена", "Урок 3 · Предмет 3", "Перемена",
+                "Урок 4 · Предмет 4", "Перемена",
+                "Урок 5 · Предмет 5", "Перемена",
+                "Урок 6 · Предмет 6", "Перемена",
+                "Урок 7 · Предмет 7",
+                "—"
+            ),
+            steps
+        )
+    }
+
+    @Test
+    fun theCardAboutTheNotificationShowsOnlyWhileItIsOffAndNotHidden() {
+        assertTrue(NotifyPromptPolicy.shouldShow(enabled = false, canPost = true, hidden = false))
+        assertTrue("включено в приложении, но система не пускает", NotifyPromptPolicy.shouldShow(enabled = true, canPost = false, hidden = false))
+        assertTrue(NotifyPromptPolicy.shouldShow(enabled = false, canPost = false, hidden = false))
+        assertFalse("уже работает", NotifyPromptPolicy.shouldShow(enabled = true, canPost = true, hidden = false))
+        assertFalse("нажали «Не напоминать»", NotifyPromptPolicy.shouldShow(enabled = false, canPost = true, hidden = true))
+        assertFalse(NotifyPromptPolicy.shouldShow(enabled = false, canPost = false, hidden = true))
     }
 
     @Test
