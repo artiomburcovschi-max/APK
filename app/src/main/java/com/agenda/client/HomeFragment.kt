@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.util.TimeZone
 
 /**
@@ -22,6 +23,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private class Views(root: View) {
         val status: TextView = root.findViewById(R.id.tvHomeStatus)
         val refresh: Button = root.findViewById(R.id.btnHomeRefresh)
+        val progressPanel: View = root.findViewById(R.id.homeProgressPanel)
+        val progressAction: TextView = root.findViewById(R.id.tvHomeProgressAction)
+        val progressHide: Button = root.findViewById(R.id.btnHomeProgressHide)
+        val progressBar: LinearProgressIndicator = root.findViewById(R.id.homeProgressBar)
         val liveCard: View = root.findViewById(R.id.cardHomeLive)
         val liveTitle: TextView = root.findViewById(R.id.tvHomeLiveTitle)
         val countdown: TextView = root.findViewById(R.id.tvHomeCountdown)
@@ -54,6 +59,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         ui = views
 
         views.refresh.setOnClickListener { h.requestRefresh() }
+        views.progressHide.setOnClickListener { h.hideProgress() }
         views.liveCard.setOnClickListener { h.openSection(Section.SCHEDULE) }
         views.allRecent.setOnClickListener { h.openSection(Section.RECENT) }
         views.allHw.setOnClickListener { h.openSection(Section.HOMEWORK) }
@@ -97,9 +103,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private fun renderStatus() {
         val h = host ?: return
         val views = ui ?: return
-        val loading = h.progress != null
-        views.status.text = if (loading) "Обновляю…" else h.status
-        views.refresh.isEnabled = !loading
+        val progress = h.progress
+        views.status.text = h.status
+        views.refresh.isEnabled = progress == null
+
+        // Панель видна, пока идёт обновление и человек её не скрыл (строка статуса с процентом остаётся всегда)
+        if (progress != null && !h.progressHidden) {
+            views.progressPanel.visibility = View.VISIBLE
+            views.progressAction.text = "Сейчас: ${progress.stage.label}"
+            views.progressBar.setProgressCompat(progress.percent, true)
+        } else {
+            views.progressPanel.visibility = View.GONE
+        }
     }
 
     // ---------- что сейчас ----------
@@ -154,7 +169,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             val row = inflater.inflate(R.layout.item_recent, views.recentContainer, false)
             row.findViewById<TextView>(R.id.tvRecentScore).apply {
                 text = item.score.toString()
-                UiStyle.tintPill(this, GradeColors.forScore(context, item.score.toDouble()))
+                val pill = if (Descriptors.isDescriptorScore(item.subject, item.score)) {
+                    ContextCompat.getColor(context, R.color.wyg_text_secondary) // не оценка 1–10: без цвета оценки
+                } else {
+                    GradeColors.forScore(context, item.score.toDouble())
+                }
+                UiStyle.tintPill(this, pill)
             }
             row.findViewById<TextView>(R.id.tvRecentSubject).text = item.subject
             row.findViewById<TextView>(R.id.tvRecentWhen).text = RecentFeed.subtitle(item)

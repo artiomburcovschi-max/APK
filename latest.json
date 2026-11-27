@@ -1,8 +1,8 @@
 {
-  "versionCode": 1100,
-  "versionName": "0.11.0",
-  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.11.0/WatchYourGrade.apk",
-  "sha256": "3f0ae9dadd946603a9e655c8efe6ffa6aa04f0aa3dc20e65f3a2f7a9652e688d",
-  "sizeBytes": 5559100,
-  "notes": "Добавлена функция поделится и был сделан редизайн,освежилась иконка"
+  "versionCode": 1200,
+  "versionName": "0.12.0",
+  "apkUrl": "https://github.com/artiomburcovschi-max/APK/releases/download/v0.12.0/WatchYourGrade.apk",
+  "sha256": "a2f3c663e8d935d67eac1c3769a33bc00d47dd0d46b44153c49b481b10b67bfd",
+  "sizeBytes": 5561656,
+  "notes": "Исправлен баг с дескрипторами и добавлен прогресс бар на главный экран"
 }

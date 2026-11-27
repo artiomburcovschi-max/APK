@@ -29,7 +29,8 @@ import kotlin.math.roundToInt
  */
 class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
 
-    private var items: List<SubjectGrades> = emptyList()
+    private var items: List<SubjectGrades> = emptyList() // только предметы с настоящими оценками (без дескрипторов)
+    private var descriptorItems: List<SubjectGrades> = emptyList() // предметы с баллами по дескрипторам: в средние не входят
     private var semesters: List<String> = emptyList()
     private var semesterIndex = 0
     private var tabIndex = 0
@@ -38,7 +39,9 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val profile = ChildStore(requireContext()).profileKey() // данные выбранного ребёнка
-        items = SnapshotCache(requireContext(), profile).load()
+        val all = SnapshotCache(requireContext(), profile).load()
+        items = Descriptors.marksOnly(all)
+        descriptorItems = all.filter { Descriptors.isDescriptorSubject(it) }
         goalTab = GoalTab(view, GoalStore(requireContext(), profile))
         setupTabs(view, savedInstanceState?.getInt(KEY_TAB) ?: 0)
         // семестры, в которых есть хотя бы одна оценка; по умолчанию показываем самый свежий
@@ -138,7 +141,8 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         // динамика: только по оценкам, у которых известна дата
         val totalGrades = current.sumOf { it.scores.size }
         val dated = Stats.datedGrades(current)
-        tvInfo.text = "Оценок с известной датой: ${dated.size} из $totalGrades"
+        val skipped = Descriptors.note(Descriptors.namesOf(descriptorItems.filter { it.semester == semester }))
+        tvInfo.text = "Оценок с известной датой: ${dated.size} из $totalGrades" + (skipped?.let { "\n$it" } ?: "")
 
         val trend = Stats.runningOverall(dated)
         if (trend.size >= 2) {

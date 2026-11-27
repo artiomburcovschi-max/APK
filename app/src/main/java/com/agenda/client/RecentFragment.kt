@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.core.content.ContextCompat
 
 /**
  * Раздел «Новые оценки»: лента того, что приложение заметило при обновлениях (см. RecentFeed).
@@ -35,7 +36,12 @@ class RecentFragment : Fragment(R.layout.fragment_recent) {
                 val row = inflater.inflate(R.layout.item_recent, container, false)
                 row.findViewById<TextView>(R.id.tvRecentScore).apply {
                     text = item.score.toString()
-                    UiStyle.tintPill(this, GradeColors.forScore(context, item.score.toDouble()))
+                    val pill = if (Descriptors.isDescriptorScore(item.subject, item.score)) {
+                        ContextCompat.getColor(context, R.color.wyg_text_secondary) // не оценка 1–10: без цвета оценки
+                    } else {
+                        GradeColors.forScore(context, item.score.toDouble())
+                    }
+                    UiStyle.tintPill(this, pill)
                 }
                 row.findViewById<TextView>(R.id.tvRecentSubject).text = item.subject
                 row.findViewById<TextView>(R.id.tvRecentWhen).text = RecentFeed.subtitle(item)

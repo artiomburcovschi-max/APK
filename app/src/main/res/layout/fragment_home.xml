@@ -35,6 +35,47 @@
                 android:textColor="@color/wyg_primary" />
         </LinearLayout>
 
+        <!-- Ход обновления: этап и процент, как на экране «Оценки» -->
+        <LinearLayout
+            android:id="@+id/homeProgressPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvHomeProgressAction"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/wyg_text_body"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnHomeProgressHide"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:text="Скрыть" />
+            </LinearLayout>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/homeProgressBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                app:trackCornerRadius="4dp"
+                app:trackThickness="6dp" />
+        </LinearLayout>
+
         <!-- Что сейчас: урок или перемена. Нажатие открывает «Расписание» -->
         <androidx.cardview.widget.CardView
             android:id="@+id/cardHomeLive"

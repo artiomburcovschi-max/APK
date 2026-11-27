@@ -46,12 +46,13 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = items[position]
         holder.tvSubject.text = item.subject
+        val descriptor = Descriptors.isDescriptorSubject(item) // баллы по дескрипторам, а не оценки 1–10
 
         // подпись под названием: семестр · среднее · официальная оценка · дата последней оценки
         val parts = mutableListOf<String>()
         if (item.semester.isNotEmpty()) parts.add(item.semester)
         if (item.scores.isNotEmpty()) {
-            parts.add(String.format(Locale.US, "среднее: %.2f", item.scores.average()))
+            parts.add(if (descriptor) "дескрипторы, не входят в средний" else String.format(Locale.US, "среднее: %.2f", item.scores.average()))
         } else {
             parts.add("нет оценок")
         }
@@ -59,7 +60,7 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
         val lastDate = item.dates.lastOrNull()?.let { GradeDates.toDisplay(it) }
         if (lastDate != null) parts.add("последняя: $lastDate")
         // тренд: стрелка после подписи (только рост и падение) и пояснение в раскрытой карточке
-        val trend = Trend.of(item.scores)
+        val trend = Trend.of(if (descriptor) emptyList() else item.scores)
         val subtitle = SpannableStringBuilder(parts.joinToString(" · "))
         val arrow = Trend.arrow(trend.direction)
         if (arrow.isNotEmpty()) {
@@ -89,7 +90,10 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
             val start = sb.length
             sb.append(score.toString())
             sb.setSpan(
-                ForegroundColorSpan(GradeColors.forScore(holder.itemView.context, score.toDouble())),
+                ForegroundColorSpan(
+                    if (descriptor) ContextCompat.getColor(holder.itemView.context, R.color.wyg_text_body)
+                    else GradeColors.forScore(holder.itemView.context, score.toDouble())
+                ),
                 start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
         }
@@ -123,7 +127,7 @@ class SubjectAdapter : RecyclerView.Adapter<SubjectAdapter.VH>() {
             val date = item.dates.getOrNull(i)?.let { GradeDates.toDisplay(it) } ?: "дата неизвестна"
             "$date  —  $score"
         }
-        val trend = Trend.describe(Trend.of(item.scores))
+        val trend = Trend.describe(Trend.of(if (Descriptors.isDescriptorSubject(item)) emptyList() else item.scores))
         val names = TeacherLookup.forSubject(teachers, item.subject)
         val head = if (names.isEmpty()) emptyList() else listOf(
             (if (names.size == 1) "Учитель: " else "Учителя: ") + names.joinToString(", "), ""
